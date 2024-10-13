@@ -5,12 +5,12 @@ import {
   Skia,
   Vector,
 } from '@shopify/react-native-skia';
-import { useMemo, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
-  useSharedValue,
   useDerivedValue,
-  withTiming,
+  useSharedValue,
   withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 
 export const TouchPoint = ({ pos }: { pos: Vector }) => {
@@ -27,12 +27,12 @@ export const TouchPoint = ({ pos }: { pos: Vector }) => {
 
   const startAnimation = () => {
     scale.value = withSequence(
-      withTiming(0.5, { duration: 0 }),
-      withTiming(20, { duration: 1000 }),
+      withTiming(0.2, { duration: 0 }),
+      withTiming(10, { duration: 500 }),
     );
     opacity.value = withSequence(
       withTiming(1, { duration: 0 }),
-      withTiming(0, { duration: 500 }),
+      withTiming(0, { duration: 400 }),
     );
   };
 

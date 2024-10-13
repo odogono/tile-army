@@ -14,7 +14,14 @@
   },
   "jest": {
     "preset": "react-native",
-    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!(react-native|react-native.*|@react-native.*|@?react-navigation.*|@shopify/react-native-skia)/)"
     ],
@@ -46,7 +53,8 @@
     "react-native-screens": "3.31.1",
     "react-native-web": "~0.19.10",
     "zustand": "^5.0.0-rc.2",
-    "expo-file-system": "~17.0.1"
+    "expo-file-system": "~17.0.1",
+    "expo-dev-client": "~4.0.28"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -68,7 +76,6 @@
     "prettier": "^3.2.5",
     "react-test-renderer": "18.2.0",
     "typescript": "~5.3.3",
-    "@testing-library/react-hooks": "^8.0.1",
     "ts-jest": "^29.1.0"
   },
   "private": true

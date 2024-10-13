@@ -1,4 +1,4 @@
-import { ExpoConfig, ConfigContext } from '@expo/config';
+import { ConfigContext, ExpoConfig } from '@expo/config';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -25,6 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
+    package: 'net.odgn.tilearmy',
   },
   web: {
     bundler: 'metro',
@@ -34,5 +35,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: ['expo-router'],
   experiments: {
     typedRoutes: true,
+  },
+  extra: {
+    eas: {
+      projectId: 'd55019e7-13b7-494e-a939-188fcf80dfac',
+    },
   },
 });

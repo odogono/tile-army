@@ -59,7 +59,7 @@ export const Index = () => {
   };
 
   useEffect(() => {
-    scale.value = 0.5;
+    scale.value = 0.6;
   }, [matrix]);
 
   const panGesture = Gesture.Pan().onChange((event) => {
@@ -73,7 +73,6 @@ export const Index = () => {
     const worldPos = screenToWorld(vec(event.x, event.y));
     touchPointPos.value = worldPos;
 
-    // log.debug('Tap event', { screenPos: vec(event.x, event.y), worldPos });
     runOnJS(updateTapPosition)(vec(event.x, event.y));
     runOnJS(updateWorldTapPosition)(worldPos);
   });
@@ -86,8 +85,8 @@ export const Index = () => {
         <Canvas style={styles.canvas} ref={canvasRef}>
           <WorldGroup matrix={matrix}>
             <Tile x={0} y={220} />
-            <Tile x={0} y={-220} />
-            <Tile x={0} y={0} isSelected />
+            <Tile x={0} y={0} />
+            <Tile x={0} y={-220} isSelected />
             <TouchPoint pos={touchPointPos.value} />
           </WorldGroup>
         </Canvas>
