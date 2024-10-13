@@ -26,6 +26,26 @@
     "react-native/no-inline-styles": 2,
     "react-native/no-raw-text": 2,
     "react-native/no-single-element-style-arrays": 2,
-    "no-console": "error"
+    "no-console": "error",
+    "sort-imports": [
+      "error",
+      {
+        "ignoreCase": true,
+        "ignoreDeclarationSort": true
+      }
+    ],
+    "import/order": [
+      1,
+      {
+        "groups": [
+          "external",
+          "builtin",
+          "internal",
+          "sibling",
+          "parent",
+          "index"
+        ]
+      }
+    ]
   }
 }

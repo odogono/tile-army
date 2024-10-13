@@ -25,7 +25,7 @@ const config = {
 export const createLogger = (prefix: string | null = null) => {
   return logger.createLogger({
     ...config,
-    formatFunc: (level: string, msg: any) => {
+    formatFunc: (level: string, _extension: string | null, msg: any) => {
       const dateTxt = `[${new Date().toLocaleTimeString()}]`;
       return `${dateTxt}${prefix ? `[${prefix}]` : ''}[${level}] ${msg}`;
     },

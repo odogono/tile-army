@@ -13,7 +13,14 @@
     "outdated": "npx npm-check-updates --interactive --format group"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "react-native",
+    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|react-native.*|@react-native.*|@?react-navigation.*|@shopify/react-native-skia)/)"
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
@@ -60,7 +67,9 @@
     "jest-expo": "~51.0.3",
     "prettier": "^3.2.5",
     "react-test-renderer": "18.2.0",
-    "typescript": "~5.3.3"
+    "typescript": "~5.3.3",
+    "@testing-library/react-hooks": "^8.0.1",
+    "ts-jest": "^29.1.0"
   },
   "private": true
 }

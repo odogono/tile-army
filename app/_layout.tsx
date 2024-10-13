@@ -3,6 +3,7 @@ import { Slot } from '@helpers/router';
 import * as SplashScreen from 'expo-splash-screen';
 import { Suspense, useEffect } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const log = createLogger('_layout');
 
@@ -31,9 +32,11 @@ const RootLayout = () => {
   log.info('RootLayout mounted');
 
   return (
-    <Suspense fallback={<Loading />}>
-      <Slot />
-    </Suspense>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Suspense fallback={<Loading />}>
+        <Slot />
+      </Suspense>
+    </GestureHandlerRootView>
   );
 };
 
