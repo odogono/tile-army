@@ -3,9 +3,24 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
+      "@components/*": [
+        "./src/components/*"
+      ],
+      "@hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@model/*": [
+        "./src/model/*"
+      ],
+      "@net/*": [
+        "./src/net/*"
+      ],
+      "@helpers/*": [
+        "./src/helpers/*"
+      ],
       "@/*": [
         "./*"
-      ]
+      ],
     }
   },
   "include": [
