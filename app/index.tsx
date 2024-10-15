@@ -52,7 +52,14 @@ const WorldGroup = ({
 
 export const Index = () => {
   const canvasRef = useCanvasRef();
-  const { position, scale, matrix, screenToWorld } = useWorldTransform({
+  const {
+    position,
+    scale,
+    matrix,
+    screenToWorld,
+    calculateZoom,
+    cameraToWorld,
+  } = useWorldTransform({
     screenWidth,
     screenHeight,
   });
@@ -68,45 +75,12 @@ export const Index = () => {
     updateWorldTapPosition,
   } = usePositionText();
 
-  const handleZoom = (
-    focalPoint: Position,
-    zoomFactor: number,
-    animated: boolean = true,
-  ) => {
-    'worklet';
-    const oldScale = scale.value;
-    const newScale = clamp(scale.value * zoomFactor, 0.1, 5);
-
-    // Convert focal point to world coordinates before scaling
-    const worldFocalPoint = screenToWorld(focalPoint);
-
-    const scaleDiff = newScale / oldScale;
-
-    // Calculate the new position to keep the focal point stationary
-
-    let posX = worldFocalPoint[0] - position.value[0];
-    let posY = worldFocalPoint[1] - position.value[1];
-    posX = worldFocalPoint[0] - posX;
-    posY = worldFocalPoint[1] - posY;
-    posX = posX * scaleDiff;
-    posY = posY * scaleDiff;
-    const pos = [posX, posY];
-
-    if (animated) {
-      position.value = withTiming(pos, { duration: 300 });
-      // Update the scale
-      scale.value = withTiming(newScale, { duration: 300 });
-    } else {
-      position.value = pos;
-      scale.value = newScale;
-    }
-  };
-
   const panGesture = Gesture.Pan().onChange((event) => {
     'worklet';
     const [x, y] = position.value;
-    position.value = [x + event.changeX, y + event.changeY];
-    runOnJS(updateWorldPosition)(position.value);
+    position.value = [x - event.changeX, y - event.changeY];
+
+    runOnJS(updateWorldPosition)(cameraToWorld(position.value));
   });
 
   const tapGesture = Gesture.Tap().onStart((event) => {
@@ -121,7 +95,12 @@ export const Index = () => {
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
       'worklet';
-      handleZoom([event.focalX, event.focalY], event.scale);
+      const { position: toPos, scale: toScale } = calculateZoom({
+        focalPoint: [event.focalX, event.focalY],
+        zoomFactor: event.scale,
+      });
+      position.value = withTiming(toPos, { duration: 300 });
+      scale.value = withTiming(toScale, { duration: 300 });
     })
     .onEnd(() => {
       'worklet';
@@ -132,11 +111,29 @@ export const Index = () => {
   const gesture = Gesture.Simultaneous(panGesture, tapGesture, pinchGesture);
 
   const handleZoomIn = () => {
-    handleZoom([screenWidth / 2, screenHeight / 2], 1.5);
+    // 'worklet';
+    const { position: toPos, scale: toScale } = calculateZoom({
+      focalPoint: [screenWidth / 2, screenHeight / 2],
+      zoomFactor: 1.5,
+    });
+    position.value = withTiming(toPos, { duration: 300 });
+    scale.value = withTiming(toScale, { duration: 300 });
   };
 
   const handleZoomOut = () => {
-    handleZoom([screenWidth / 2, screenHeight / 2], 1 / 1.5);
+    // 'worklet';
+    const { position: toPos, scale: toScale } = calculateZoom({
+      focalPoint: [screenWidth / 2, screenHeight / 2],
+      zoomFactor: 1 / 1.5,
+    });
+    position.value = withTiming(toPos, { duration: 300 });
+    scale.value = withTiming(toScale, { duration: 300 });
+  };
+
+  const handleReset = () => {
+    const target = [220, 220];
+    position.value = withTiming(target, { duration: 300 });
+    scale.value = withTiming(1, { duration: 300 });
   };
 
   return (
@@ -152,9 +149,9 @@ export const Index = () => {
           }}
         >
           <WorldGroup matrix={matrix}>
+            <Tile x={220} y={220} colour='#3F3' />
             <Tile x={0} y={220} />
-            <Tile x={0} y={0} />
-            <Tile x={0} y={-220} />
+            <Tile x={0} y={0} colour='#FFF' />
             <TouchPoint pos={touchPointPos.value} />
           </WorldGroup>
           <Rect
@@ -162,6 +159,13 @@ export const Index = () => {
             y={screenHeight / 2}
             width={screenWidth}
             height={1}
+            color='red'
+          />
+          <Rect
+            x={screenWidth / 2}
+            y={0}
+            width={1}
+            height={screenHeight}
             color='red'
           />
         </Canvas>
@@ -180,6 +184,9 @@ export const Index = () => {
           </TouchableOpacity>
           <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
             <Text style={styles.zoomButtonText}>-</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.zoomButton} onPress={handleReset}>
+            <Text style={styles.zoomButtonText}>R</Text>
           </TouchableOpacity>
         </View>
       </View>

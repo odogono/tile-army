@@ -25,6 +25,7 @@ export type TileProps = {
   x: number;
   y: number;
   isSelected?: boolean;
+  colour?: string;
 };
 
 const createTilePath = (width: number, height: number, r: number) => {
@@ -38,7 +39,7 @@ const createTilePath = (width: number, height: number, r: number) => {
   return path;
 };
 
-export const Tile = ({ x, y, isSelected }: TileProps) => {
+export const Tile = ({ x, y, isSelected, colour = '#60efff' }: TileProps) => {
   const scale = useSharedValue(1);
 
   const width = 200;
@@ -68,17 +69,17 @@ export const Tile = ({ x, y, isSelected }: TileProps) => {
   return (
     <Group matrix={matrix}>
       <Group transform={[{ translateX: -10 }, { translateY: 10 }]}>
-        <Path path={path} strokeWidth={2} color='#BBB'>
-          <Blur blur={5} />
+        <Path path={path} color='#BBB'>
+          <Blur blur={10} />
         </Path>
       </Group>
 
-      <Path path={path} color='#000'>
-        <LinearGradient
+      <Path path={path} color={colour}>
+        {/* <LinearGradient
           start={vec(2 * gR, 0)}
           end={vec(4 * gR, 4 * gR)}
-          colors={['lightblue', '#60efff']}
-        />
+          colors={['lightblue', colour ]}
+        /> */}
       </Path>
       {isSelected && (
         <Path path={path} strokeWidth={2} color='#000' style='stroke'>
