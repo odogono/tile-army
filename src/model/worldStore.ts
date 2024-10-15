@@ -3,6 +3,8 @@ import { Vector } from '@shopify/react-native-skia';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 
+import { Tile } from './Tile';
+
 const log = createLogger('WorldStore');
 
 export type WorldStore = {

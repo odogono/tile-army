@@ -18,6 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: '#ffffff',
   },
   ios: {
+    bundleIdentifier: 'net.odgn.tilearmy',
     supportsTablet: true,
   },
   android: {

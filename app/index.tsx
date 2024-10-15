@@ -7,23 +7,34 @@ import {
   Canvas,
   Group,
   LinearGradient,
+  Rect,
   RoundedRect,
   Skia,
   SkMatrix,
   useCanvasRef,
-  vec,
-  Vector,
 } from '@shopify/react-native-skia';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  clamp,
   runOnJS,
   SharedValue,
   useAnimatedProps,
   useDerivedValue,
   useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
+
+import CameraMatrix from '@components/CameraMatrix';
+
+import type { Position } from 'geojson';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -41,63 +52,168 @@ const WorldGroup = ({
 
 export const Index = () => {
   const canvasRef = useCanvasRef();
-  // const translateX = useSharedValue(0);
-  // const translateY = useSharedValue(0);
-  const { translateX, translateY, scale, matrix, screenToWorld } =
-    useWorldTransform({ screenWidth, screenHeight });
+  const { position, scale, matrix, screenToWorld } = useWorldTransform({
+    screenWidth,
+    screenHeight,
+  });
 
-  const touchPointPos = useSharedValue<Vector>(vec(0, 0));
-  const [tapPosition, setTapPosition] = useState('');
-  const [worldTapPosition, setWorldTapPosition] = useState('');
+  const touchPointPos = useSharedValue<Position>([0, 0]);
 
-  const updateTapPosition = (pos: Vector) => {
-    setTapPosition(`(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)})`);
+  const {
+    worldPosition,
+    tapPosition,
+    worldTapPosition,
+    updateWorldPosition,
+    updateTapPosition,
+    updateWorldTapPosition,
+  } = usePositionText();
+
+  const handleZoom = (
+    focalPoint: Position,
+    zoomFactor: number,
+    animated: boolean = true,
+  ) => {
+    'worklet';
+    const oldScale = scale.value;
+    const newScale = clamp(scale.value * zoomFactor, 0.1, 5);
+
+    // Convert focal point to world coordinates before scaling
+    const worldFocalPoint = screenToWorld(focalPoint);
+
+    const scaleDiff = newScale / oldScale;
+
+    // Calculate the new position to keep the focal point stationary
+
+    let posX = worldFocalPoint[0] - position.value[0];
+    let posY = worldFocalPoint[1] - position.value[1];
+    posX = worldFocalPoint[0] - posX;
+    posY = worldFocalPoint[1] - posY;
+    posX = posX * scaleDiff;
+    posY = posY * scaleDiff;
+    const pos = [posX, posY];
+
+    if (animated) {
+      position.value = withTiming(pos, { duration: 300 });
+      // Update the scale
+      scale.value = withTiming(newScale, { duration: 300 });
+    } else {
+      position.value = pos;
+      scale.value = newScale;
+    }
   };
-
-  const updateWorldTapPosition = (pos: Vector) => {
-    setWorldTapPosition(`(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)})`);
-  };
-
-  useEffect(() => {
-    scale.value = 0.6;
-  }, [matrix]);
 
   const panGesture = Gesture.Pan().onChange((event) => {
     'worklet';
-    translateX.value += event.changeX;
-    translateY.value += event.changeY;
+    const [x, y] = position.value;
+    position.value = [x + event.changeX, y + event.changeY];
+    runOnJS(updateWorldPosition)(position.value);
   });
 
   const tapGesture = Gesture.Tap().onStart((event) => {
     'worklet';
-    const worldPos = screenToWorld(vec(event.x, event.y));
+    const worldPos = screenToWorld([event.x, event.y]);
     touchPointPos.value = worldPos;
 
-    runOnJS(updateTapPosition)(vec(event.x, event.y));
+    runOnJS(updateTapPosition)([event.x, event.y]);
     runOnJS(updateWorldTapPosition)(worldPos);
   });
 
-  const gesture = Gesture.Simultaneous(panGesture, tapGesture);
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((event) => {
+      'worklet';
+      handleZoom([event.focalX, event.focalY], event.scale);
+    })
+    .onEnd(() => {
+      'worklet';
+      runOnJS(updateWorldPosition)(position.value);
+    });
+
+  // Combine the existing gestures with the new pinch gesture
+  const gesture = Gesture.Simultaneous(panGesture, tapGesture, pinchGesture);
+
+  const handleZoomIn = () => {
+    handleZoom([screenWidth / 2, screenHeight / 2], 1.5);
+  };
+
+  const handleZoomOut = () => {
+    handleZoom([screenWidth / 2, screenHeight / 2], 1 / 1.5);
+  };
 
   return (
     <GestureDetector gesture={gesture}>
       <View style={styles.container}>
-        <Canvas style={styles.canvas} ref={canvasRef}>
+        <Canvas
+          style={styles.canvas}
+          ref={canvasRef}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            // setScreenWidth(width);
+            // setScreenHeight(height);
+          }}
+        >
           <WorldGroup matrix={matrix}>
             <Tile x={0} y={220} />
             <Tile x={0} y={0} />
-            <Tile x={0} y={-220} isSelected />
+            <Tile x={0} y={-220} />
             <TouchPoint pos={touchPointPos.value} />
           </WorldGroup>
+          <Rect
+            x={0}
+            y={screenHeight / 2}
+            width={screenWidth}
+            height={1}
+            color='red'
+          />
         </Canvas>
-        <Text style={styles.positionText}>Local {tapPosition}</Text>
         <Text style={[styles.positionText, styles.worldPositionText]}>
-          World {worldTapPosition}
+          World {worldPosition}
         </Text>
+        <Text style={[styles.positionText, styles.localTapPositionText]}>
+          LocalT {tapPosition}
+        </Text>
+        <Text style={[styles.positionText, styles.worldTapPositionText]}>
+          WorldT {worldTapPosition}
+        </Text>
+        <View style={styles.zoomButtonsContainer}>
+          <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
+            <Text style={styles.zoomButtonText}>+</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
+            <Text style={styles.zoomButtonText}>-</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </GestureDetector>
   );
 };
+
+const usePositionText = () => {
+  const [worldPosition, setWorldPosition] = useState('0.00, 0.00');
+  const [tapPosition, setTapPosition] = useState('0.00, 0.00');
+  const [worldTapPosition, setWorldTapPosition] = useState('0.00, 0.00');
+
+  const updateWorldPosition = (pos: Position) => {
+    setWorldPosition(positionToString(pos));
+  };
+  const updateTapPosition = (pos: Position) => {
+    setTapPosition(positionToString(pos));
+  };
+
+  const updateWorldTapPosition = (pos: Position) => {
+    setWorldTapPosition(positionToString(pos));
+  };
+
+  return {
+    worldPosition,
+    tapPosition,
+    worldTapPosition,
+    updateWorldPosition,
+    updateTapPosition,
+    updateWorldTapPosition,
+  };
+};
+const positionToString = ([x, y]: Position) =>
+  `${x.toFixed(2)}, ${y.toFixed(2)}`;
 
 const styles = StyleSheet.create({
   container: {
@@ -121,7 +237,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   worldPositionText: {
+    top: 100,
+  },
+  localTapPositionText: {
     top: 150,
+  },
+  worldTapPositionText: {
+    top: 200,
+  },
+  zoomButtonsContainer: {
+    position: 'absolute',
+    top: 100,
+    right: 20,
+    flexDirection: 'column',
+    rowGap: 10,
+  },
+  zoomButton: {
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 25,
+    marginLeft: 10,
+  },
+  zoomButtonText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });
 

@@ -12,8 +12,9 @@ import {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { Position } from 'geojson';
 
-export const TouchPoint = ({ pos }: { pos: Vector }) => {
+export const TouchPoint = ({ pos }: { pos: Position }) => {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -43,7 +44,7 @@ export const TouchPoint = ({ pos }: { pos: Vector }) => {
   const matrix = useDerivedValue(() => {
     const m3 = Skia.Matrix();
     if (pos) {
-      m3.translate(pos.x, pos.y);
+      m3.translate(pos[0], pos[1]);
     }
     m3.scale(scale.value, scale.value);
     return m3;

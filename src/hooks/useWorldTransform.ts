@@ -1,6 +1,7 @@
-import { Skia, Vector, vec } from '@shopify/react-native-skia';
+import { Skia, vec, Vector } from '@shopify/react-native-skia';
 import { useCallback } from 'react';
 import { useDerivedValue, useSharedValue } from 'react-native-reanimated';
+import type { Position } from 'geojson';
 
 export type UseWorldTransformProps = {
   screenWidth: number;
@@ -12,44 +13,39 @@ export const useWorldTransform = ({
   screenHeight,
 }: UseWorldTransformProps) => {
   const scale = useSharedValue(1);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
+  const position = useSharedValue<Position>([0, 0]);
 
   const matrix = useDerivedValue(() => {
-    // const scale = 0.5;
+    const [x, y] = position.value;
     const m = Skia.Matrix();
-    m.translate(translateX.value, translateY.value);
+
+    // Translate to the center of the screen
     m.translate(screenWidth / 2, screenHeight / 2);
+
+    // Apply scale around the current position
+    m.translate(x, y);
     m.scale(scale.value, scale.value);
+
     return m;
-  }, [scale, screenWidth, screenHeight, translateX, translateY]);
+  }, [scale, screenWidth, screenHeight, position]);
 
   const inverseMatrix = useDerivedValue(() => {
-    // const scale = 0.5;
+    const [x, y] = position.value;
     const m = Skia.Matrix();
 
+    // Invert the operations in reverse order
     m.scale(1 / scale.value, 1 / scale.value);
+    m.translate(-x, -y);
+
     m.translate(-screenWidth / 2, -screenHeight / 2);
-    m.translate(-translateX.value, -translateY.value);
 
     return m;
-  }, [scale, screenWidth, screenHeight, translateX, translateY]);
-
-  // const applyMatrix = (matrix: SkMatrix, points: Vector[]) => {
-  //   const [a, b, c, d, e, f] = matrix.get();
-
-  //   return points.map((p) => {
-  //     const x = a * p.x + c * p.y + e;
-  //     const y = b * p.x + d * p.y + f;
-
-  //     return vec(x, y);
-  //   });
-  // };
+  }, [scale, screenWidth, screenHeight, position]);
 
   const screenToWorld = useCallback(
-    (point: Vector): Vector => {
+    (point: Position): Position => {
       'worklet';
-      const { x, y } = point;
+      const [x, y] = point;
       const m = inverseMatrix.value.get();
       const a = m[0],
         b = m[1],
@@ -61,7 +57,7 @@ export const useWorldTransform = ({
       const worldX = a * x + b * y + c;
       const worldY = d * x + e * y + f;
 
-      return vec(worldX, worldY);
+      return [worldX, worldY];
     },
     [inverseMatrix],
   );
@@ -70,8 +66,7 @@ export const useWorldTransform = ({
     matrix,
     inverseMatrix,
     scale,
-    translateX,
-    translateY,
+    position,
     screenToWorld,
   };
 };

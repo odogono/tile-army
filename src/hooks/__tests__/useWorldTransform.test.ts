@@ -1,5 +1,5 @@
 import { vec, Vector } from '@shopify/react-native-skia';
-import { renderHook, act } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { Matrix3 } from '../../helpers/Matrix3';
 import {
