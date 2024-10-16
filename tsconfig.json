@@ -6,6 +6,9 @@
       "@components/*": [
         "./src/components/*"
       ],
+      "@helpers/*": [
+        "./src/helpers/*"
+      ],
       "@hooks/*": [
         "./src/hooks/*"
       ],
@@ -15,12 +18,9 @@
       "@net/*": [
         "./src/net/*"
       ],
-      "@helpers/*": [
-        "./src/helpers/*"
-      ],
       "@/*": [
-        "./*"
-      ],
+        "./src/*"
+      ]
     }
   },
   "include": [
