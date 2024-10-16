@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
-import { create } from 'zustand';
+import { useEffect, useMemo } from 'react';
+import { create, StoreApi, UseBoundStore } from 'zustand';
 import type { BBox, Position } from 'geojson';
-import { Tile } from './Tile';
+import { createTile, Tile } from './Tile';
+import { bboxToRect } from '../helpers/geo';
+import { createLogger } from '../helpers/log';
 
 type Camera = {
   position: Position;
@@ -15,127 +17,184 @@ type Camera = {
   zoom: number;
 };
 
+export type UseTileMapStoreReturn = {
+  addTiles: (tiles: Tile[]) => void;
+  getTile: (position: Position) => Tile | undefined;
+  getVisibleTiles: (bbox: BBox) => Tile[];
+  store: UseBoundStore<StoreApi<TileMapState>>;
+};
+
 type TileMapState = {
   tiles: Map<string, Tile>;
 
   spatialIndex: Map<string, Tile[]>;
 
-  camera: Camera;
+  // camera: Camera;
 
-  addTile: (tile: Tile) => void;
+  addTiles: (tiles: Tile[]) => void;
 
   getTile: (position: Position) => Tile | undefined;
 
-  getVisibleTiles: () => Tile[];
+  getVisibleTiles: (bbox: BBox) => Tile[];
+  // moveCamera: (position: Position) => void;
 
-  moveCamera: (position: Position) => void;
+  // setCamera: (camera: Camera) => void;
+};
 
-  setCamera: (camera: Camera) => void;
+type TileMapStorePartialState = {
+  tiles?: Partial<Tile>[];
 };
 
 const SPATIAL_CELL_SIZE = 100;
 
-const TILE_WIDTH = 128;
-const TILE_HEIGHT = 128;
+const TILE_WIDTH = 100;
+const TILE_HEIGHT = 100;
+
+const tileToString = (tile: Tile) => `${tile.position[0]},${tile.position[1]}`;
 
 const positionToString = (coord: Position) => `${coord[0]},${coord[1]}`;
 
 const stringToPosition = (str: string): Position => str.split(',').map(Number);
 
-export const useTileMapStore = () => {
-  const store = create<TileMapState>((set, get) => ({
-    tiles: new Map<string, Tile>(),
+// eslint-disable-next-line no-console
+const log = createLogger('TileMapStore');
 
-    spatialIndex: new Map<string, Tile[]>(),
+// Update adjacency (simplified for brevity)
+// You may want to adjust this based on your game's rules
+const directions: Position[] = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1],
+];
 
-    camera: {
-      position: [0, 0],
-      bbox: [0, 0, 0, 0],
-      screenBBox: [0, 0, 0, 0],
-      zoom: 0,
-    },
+export const useTileMapStore = (
+  initialState: TileMapStorePartialState = {},
+): UseTileMapStoreReturn => {
+  const store = useMemo(
+    () =>
+      create<TileMapState>((set, get) => ({
+        tiles: new Map<string, Tile>(),
 
-    addTile: (tile: Tile) =>
-      set((state) => {
-        const newTiles = new Map(state.tiles);
-        const newSpatialIndex = new Map(state.spatialIndex);
+        spatialIndex: new Map<string, Tile[]>(),
 
-        const key = positionToString([tile.x, tile.y]);
-        newTiles.set(key, tile);
+        // camera: {
+        //   position: [0, 0],
+        //   bbox: [0, 0, 0, 0],
+        //   screenBBox: [0, 0, 0, 0],
+        //   zoom: 0,
+        // },
 
-        const indexKey = positionToString([
-          Math.floor(tile.x / SPATIAL_CELL_SIZE),
-          Math.floor(tile.y / SPATIAL_CELL_SIZE),
-        ]);
+        addTiles: (tiles: Tile[]) =>
+          set((state) => {
+            const newTiles = new Map(state.tiles);
+            const newSpatialIndex = new Map(state.spatialIndex);
 
-        newSpatialIndex.get(indexKey)!.push(tile);
+            for (const tile of tiles) {
+              const key = tileToString(tile);
+              tile.id = key;
+              newTiles.set(key, tile);
 
-        // Update adjacency (simplified for brevity)
-        // You may want to adjust this based on your game's rules
-        const directions: Position[] = [
-          [1, 0],
-          [0, 1],
-          [-1, 0],
-          [0, -1],
-        ];
+              const indexKey = positionToString([
+                Math.floor(tile.position[0] / SPATIAL_CELL_SIZE),
+                Math.floor(tile.position[1] / SPATIAL_CELL_SIZE),
+              ]);
 
-        for (const [dx, dy] of directions) {
-          const adjacentX = tile.x + dx * TILE_WIDTH;
-          const adjacentY = tile.y + dy * TILE_HEIGHT;
-          const adjacent = get().getTile([adjacentX, adjacentY]);
-          if (adjacent) {
-            tile.adjacent = [...(tile.adjacent || []), adjacent];
-            adjacent.adjacent = [...(adjacent.adjacent || []), tile];
-          }
-        }
+              const tilesInCell = newSpatialIndex.get(indexKey) ?? [];
+              tilesInCell.push(tile);
+              newSpatialIndex.set(indexKey, tilesInCell);
+            }
 
-        return { tiles: newTiles, spatialIndex: newSpatialIndex };
-      }),
+            for (const tile of tiles.values()) {
+              for (const [dx, dy] of directions) {
+                const adjacentX = tile.position[0] + dx * TILE_WIDTH;
+                const adjacentY = tile.position[1] + dy * TILE_HEIGHT;
+                const adjacent = newTiles.get(
+                  positionToString([adjacentX, adjacentY]),
+                );
+                if (adjacent) {
+                  tile.adjacent = [...(tile.adjacent ?? []), adjacent];
+                  adjacent.adjacent = [...(adjacent.adjacent ?? []), tile];
+                }
+              }
+            }
 
-    getTile: (position: Position) =>
-      get().tiles.get(positionToString(position)),
+            return {
+              ...state,
+              tiles: newTiles,
+              spatialIndex: newSpatialIndex,
+            };
+          }),
 
-    getVisibleTiles: () => {
-      const { camera, spatialIndex } = get();
-      const visible: Tile[] = [];
+        getTile: (position: Position) =>
+          get().tiles.get(positionToString(position)),
 
-      const startX = camera.position[0] - camera.bbox[2] / 2;
-      const startY = camera.position[1] - camera.bbox[3] / 2;
-      const endX = camera.position[0] + camera.bbox[2] / 2;
-      const endY = camera.position[1] + camera.bbox[3] / 2;
+        getVisibleTiles: (bbox: BBox) => {
+          const { spatialIndex } = get();
+          const visible: Tile[] = [];
 
-      const startCellX = Math.floor(startX / SPATIAL_CELL_SIZE);
-      const startCellY = Math.floor(startY / SPATIAL_CELL_SIZE);
-      const endCellX = Math.floor(endX / SPATIAL_CELL_SIZE);
-      const endCellY = Math.floor(endY / SPATIAL_CELL_SIZE);
+          const rect = bboxToRect(bbox);
 
-      for (let cellX = startCellX; cellX <= endCellX; cellX++) {
-        for (let cellY = startCellY; cellY <= endCellY; cellY++) {
-          const indexKey = positionToString([cellX, cellY]);
-          const tilesInCell = spatialIndex.get(indexKey) || [];
-          for (const tile of tilesInCell) {
-            if (
-              tile.x < endX &&
-              tile.x + TILE_WIDTH > startX &&
-              tile.y < endY &&
-              tile.y + TILE_HEIGHT > startY
-            ) {
-              visible.push(tile);
+          const startX = rect.x;
+          const startY = rect.y;
+          const endX = rect.x + rect.width;
+          const endY = rect.y + rect.height;
+
+          const startCellX = Math.floor(startX / SPATIAL_CELL_SIZE);
+          const startCellY = Math.floor(startY / SPATIAL_CELL_SIZE);
+          const endCellX = Math.floor(endX / SPATIAL_CELL_SIZE);
+          const endCellY = Math.floor(endY / SPATIAL_CELL_SIZE);
+
+          for (let cellX = startCellX; cellX <= endCellX; cellX++) {
+            for (let cellY = startCellY; cellY <= endCellY; cellY++) {
+              const indexKey = positionToString([cellX, cellY]);
+              const tilesInCell = spatialIndex.get(indexKey) ?? [];
+              for (const tile of tilesInCell) {
+                const [x, y] = tile.position;
+                if (
+                  x < endX &&
+                  x + TILE_WIDTH > startX &&
+                  y < endY &&
+                  y + TILE_HEIGHT > startY
+                ) {
+                  visible.push(tile);
+                }
+              }
             }
           }
-        }
-      }
 
-      return visible;
-    },
+          return visible;
+        },
 
-    moveCamera: (position: Position) =>
-      set((state) => ({
-        camera: { ...state.camera, position },
+        // moveCamera: (position: Position) =>
+        //   set((state) => ({
+        //     camera: { ...state.camera, position },
+        //   })),
+
+        // setCamera: (camera: Camera) => set({ camera }),
       })),
+    [],
+  );
 
-    setCamera: (camera: Camera) => set({ camera }),
-  }));
+  const addTiles = store((state) => state.addTiles);
+  const getVisibleTiles = store((state) => state.getVisibleTiles);
+  const getTile = store((state) => state.getTile);
 
-  return store;
+  useEffect(() => {
+    const { tiles } = initialState;
+
+    if (tiles) {
+      const tilesToAdd = tiles.map((v) => createTile({ ...v }));
+      addTiles(tilesToAdd);
+
+      log.debug('added tiles', store.getState().tiles);
+    }
+  }, [initialState]);
+
+  return {
+    addTiles,
+    store,
+    getVisibleTiles,
+    getTile,
+  };
 };

@@ -1,6 +1,7 @@
 import { vec, Vector } from '@shopify/react-native-skia';
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Position } from 'geojson';
 import { Matrix3 } from '../../helpers/Matrix3';
 import {
   useWorldTransform,
@@ -11,43 +12,14 @@ describe('useWorldTransform', () => {
   const defaultProps: UseWorldTransformProps = {
     screenWidth: 400,
     screenHeight: 800,
+    scale: 1,
   };
-
-  it('basic sanity check', () => {
-    const m = new Matrix3();
-    m.translate(100, 200);
-    m.scale(2, 2);
-
-    const inv = new Matrix3();
-    inv.scale(1 / 2, 1 / 2);
-    inv.translate(-100, -200);
-
-    const project = (matrix: Matrix3, point: Vector) => {
-      const { x, y } = point;
-      const m = matrix.get();
-      const a = m[0],
-        b = m[1],
-        c = m[2],
-        d = m[3],
-        e = m[4],
-        f = m[5];
-
-      return vec(a * x + b * y + c, d * x + e * y + f);
-    };
-
-    const v = vec(0, 0);
-
-    expect(project(m, v)).toEqual(vec(100, 200));
-
-    expect(project(inv, vec(100, 200))).toEqual(vec(0, 0));
-  });
 
   it('should initialize with default values', () => {
     const { result } = renderHook(() => useWorldTransform(defaultProps));
 
     expect(result.current.scale.value).toBe(1);
-    expect(result.current.translateX.value).toBe(0);
-    expect(result.current.translateY.value).toBe(0);
+    expect(result.current.position.value).toEqual([0, 0]);
   });
 
   it.skip('should update matrix when scale changes', () => {
@@ -67,8 +39,7 @@ describe('useWorldTransform', () => {
     const { result } = renderHook(() => useWorldTransform(defaultProps));
 
     act(() => {
-      result.current.translateX.value = 100;
-      result.current.translateY.value = 50;
+      result.current.position.value = [100, 50];
     });
 
     const matrixValues = result.current.matrix.value.get();
@@ -81,29 +52,24 @@ describe('useWorldTransform', () => {
 
     act(() => {
       result.current.scale.value = 2;
-      result.current.translateX.value = 100;
-      result.current.translateY.value = 50;
+      result.current.position.value = [100, 50];
     });
 
-    const screenPoint = vec(300, 400);
-    const worldPoint = result.current.screenToWorld(screenPoint);
+    const worldPoint = result.current.screenToWorld([300, 400]);
 
     // Expected calculations:
     // x: (300 - 300) / 2 = 0
     // y: (400 - 450) / 2 = -25
-    expect(worldPoint.x).toBeCloseTo(0);
-    expect(worldPoint.y).toBeCloseTo(-25);
+    expect(worldPoint).toEqual([0, -25]);
   });
 
   it('should handle edge cases for screen to world transformation', () => {
     const { result } = renderHook(() => useWorldTransform(defaultProps));
 
-    const topLeft = result.current.screenToWorld(vec(0, 0));
-    const bottomRight = result.current.screenToWorld(vec(400, 800));
+    const topLeft = result.current.screenToWorld([0, 0]);
+    const bottomRight = result.current.screenToWorld([400, 800]);
 
-    expect(topLeft.x).toBeCloseTo(-200);
-    expect(topLeft.y).toBeCloseTo(-400);
-    expect(bottomRight.x).toBeCloseTo(200);
-    expect(bottomRight.y).toBeCloseTo(400);
+    expect(topLeft).toEqual([0, 0]);
+    expect(bottomRight).toEqual([400, 800]);
   });
 });

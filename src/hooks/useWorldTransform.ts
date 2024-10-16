@@ -1,4 +1,4 @@
-import { Skia, vec, Vector } from '@shopify/react-native-skia';
+import { Skia } from '@shopify/react-native-skia';
 import { useCallback } from 'react';
 import {
   clamp,
@@ -10,20 +10,27 @@ import type { BBox, Position } from 'geojson';
 export type UseWorldTransformProps = {
   screenWidth: number;
   screenHeight: number;
+  scale: number;
 };
 
 export const useWorldTransform = ({
   screenWidth,
   screenHeight,
+  scale: initialScale = 1,
 }: UseWorldTransformProps) => {
-  const scale = useSharedValue(1);
+  const scale = useSharedValue(initialScale);
 
   // position of the camera in screen coordinates
   const position = useSharedValue<Position>([0, 0]);
 
   const bbox = useDerivedValue<BBox>(() => {
+    const [x, y] = position.value;
+    const width = screenWidth / scale.value;
+    const height = screenHeight / scale.value;
+    const hWidth = width / 2;
+    const hHeight = height / 2;
     // sw point, then ne point
-    // return [0, screenHeight, screenWidth, 0];
+    return [x - hWidth, y + hHeight, x + hWidth, y - hHeight];
   }, [position, screenWidth, screenHeight]);
 
   const matrix = useDerivedValue(() => {
@@ -136,6 +143,7 @@ export const useWorldTransform = ({
   }, []);
 
   return {
+    bbox,
     matrix,
     inverseMatrix,
     scale,

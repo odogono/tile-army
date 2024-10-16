@@ -18,15 +18,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { Tile } from '@model/Tile';
 
 const log = createLogger('Tile');
-
-export type TileProps = {
-  x: number;
-  y: number;
-  isSelected?: boolean;
-  colour?: string;
-};
 
 const createTilePath = (width: number, height: number, r: number) => {
   const rX = -(width / 2);
@@ -39,15 +33,19 @@ const createTilePath = (width: number, height: number, r: number) => {
   return path;
 };
 
-export const Tile = ({ x, y, isSelected, colour = '#60efff' }: TileProps) => {
+export const TileComponent = ({
+  position,
+  isSelected,
+  colour = '#60efff',
+}: Tile) => {
   const scale = useSharedValue(1);
 
-  const width = 200;
-  const height = 200;
+  const width = 100 - 10;
+  const height = 100 - 10;
   const gR = width / 2;
 
   const path = useMemo(
-    () => createTilePath(width, height, 20),
+    () => createTilePath(width, height, 10),
     [width, height],
   );
 
@@ -61,7 +59,7 @@ export const Tile = ({ x, y, isSelected, colour = '#60efff' }: TileProps) => {
 
   const matrix = useDerivedValue(() => {
     const m3 = Skia.Matrix();
-    m3.translate(x, y);
+    m3.translate(position[0], position[1]);
     m3.scale(scale.value, scale.value);
     return m3;
   });

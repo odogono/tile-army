@@ -1,4 +1,4 @@
-import { Tile } from '@components/Tile';
+import { TileComponent } from '@components/Tile';
 import { TouchPoint } from '@components/TouchPoint';
 import { createLogger } from '@helpers/log';
 import { useWorldTransform } from '@hooks/useWorldTransform';
@@ -23,7 +23,6 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  clamp,
   runOnJS,
   SharedValue,
   useAnimatedProps,
@@ -32,27 +31,30 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import CameraMatrix from '@components/CameraMatrix';
-
-import type { Position } from 'geojson';
-
+import type { BBox, Position } from 'geojson';
+import { useTileMapStore } from '@model/TileMapStore';
+import { Tile } from '@model/Tile';
+import { bboxToString } from '@helpers/geo';
+import { state as initialState } from '@model/state';
+import { World } from '@components/World';
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const log = createLogger('Index');
 
-const WorldGroup = ({
-  children,
-  matrix,
-}: {
-  children: React.ReactNode;
-  matrix: SharedValue<SkMatrix>;
-}) => {
-  return <Group matrix={matrix}>{children}</Group>;
-};
+// const WorldGroup = ({
+//   children,
+//   matrix,
+// }: {
+//   children: React.ReactNode;
+//   matrix: SharedValue<SkMatrix>;
+// }) => {
+//   return <Group matrix={matrix}>{children}</Group>;
+// };
 
 export const Index = () => {
   const canvasRef = useCanvasRef();
   const {
+    bbox,
     position,
     scale,
     matrix,
@@ -62,17 +64,22 @@ export const Index = () => {
   } = useWorldTransform({
     screenWidth,
     screenHeight,
+    scale: 1,
   });
+
+  const store = useTileMapStore(initialState);
 
   const touchPointPos = useSharedValue<Position>([0, 0]);
 
   const {
+    bboxString,
     worldPosition,
     tapPosition,
     worldTapPosition,
     updateWorldPosition,
     updateTapPosition,
     updateWorldTapPosition,
+    updateBBox,
   } = usePositionText();
 
   const panGesture = Gesture.Pan().onChange((event) => {
@@ -81,6 +88,7 @@ export const Index = () => {
     position.value = [x - event.changeX, y - event.changeY];
 
     runOnJS(updateWorldPosition)(cameraToWorld(position.value));
+    runOnJS(updateBBox)(bbox.value);
   });
 
   const tapGesture = Gesture.Tap().onStart((event) => {
@@ -148,12 +156,15 @@ export const Index = () => {
             // setScreenHeight(height);
           }}
         >
-          <WorldGroup matrix={matrix}>
-            <Tile x={220} y={220} colour='#3F3' />
-            <Tile x={0} y={220} />
-            <Tile x={0} y={0} colour='#FFF' />
+          <World bbox={bbox} matrix={matrix} store={store}>
             <TouchPoint pos={touchPointPos.value} />
-          </WorldGroup>
+          </World>
+          {/* <WorldGroup matrix={matrix}>
+            <TileComponent position={[220, 220]} colour='#3F3' />
+            <TileComponent position={[0, 220]} />
+            <TileComponent position={[0, 0]} colour='#FFF' />
+            <TouchPoint pos={touchPointPos.value} />
+          </WorldGroup> */}
           <Rect
             x={0}
             y={screenHeight / 2}
@@ -178,6 +189,9 @@ export const Index = () => {
         <Text style={[styles.positionText, styles.worldTapPositionText]}>
           WorldT {worldTapPosition}
         </Text>
+        <Text style={[styles.positionText, styles.bboxText]}>
+          BBox {bboxString}
+        </Text>
         <View style={styles.zoomButtonsContainer}>
           <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
             <Text style={styles.zoomButtonText}>+</Text>
@@ -198,6 +212,7 @@ const usePositionText = () => {
   const [worldPosition, setWorldPosition] = useState('0.00, 0.00');
   const [tapPosition, setTapPosition] = useState('0.00, 0.00');
   const [worldTapPosition, setWorldTapPosition] = useState('0.00, 0.00');
+  const [bboxString, setBBox] = useState('0.00, 0.00, 0.00, 0.00');
 
   const updateWorldPosition = (pos: Position) => {
     setWorldPosition(positionToString(pos));
@@ -210,17 +225,25 @@ const usePositionText = () => {
     setWorldTapPosition(positionToString(pos));
   };
 
+  const updateBBox = (bbox: BBox) => {
+    setBBox(bboxToString(bbox));
+  };
+
   return {
+    bboxString,
     worldPosition,
     tapPosition,
     worldTapPosition,
     updateWorldPosition,
     updateTapPosition,
     updateWorldTapPosition,
+    updateBBox,
   };
 };
 const positionToString = ([x, y]: Position) =>
   `${x.toFixed(2)}, ${y.toFixed(2)}`;
+
+const textTop = 100;
 
 const styles = StyleSheet.create({
   container: {
@@ -236,21 +259,23 @@ const styles = StyleSheet.create({
   positionText: {
     position: 'absolute',
     top: 100,
-    left: 20,
+    left: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     color: 'white',
-    padding: 10,
-    borderRadius: 10,
-    fontSize: 16,
+    padding: 8,
+    fontSize: 9,
   },
   worldPositionText: {
-    top: 100,
+    top: textTop,
   },
   localTapPositionText: {
-    top: 150,
+    top: textTop + 30,
   },
   worldTapPositionText: {
-    top: 200,
+    top: textTop + 60,
+  },
+  bboxText: {
+    top: textTop + 90,
   },
   zoomButtonsContainer: {
     position: 'absolute',
