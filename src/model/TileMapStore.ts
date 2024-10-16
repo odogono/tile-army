@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { create, StoreApi, UseBoundStore } from 'zustand';
-import type { BBox, Position } from 'geojson';
+import type { BBox, Position } from '@types';
 import { createTile, Tile } from './Tile';
-import { bboxToRect } from '../helpers/geo';
+import { createRTree, findByBBox, TileRBush } from './rtree';
+import { bboxIntersectsBBox, bboxToRect, pointToBBox } from '../helpers/geo';
 import { createLogger } from '../helpers/log';
 
 type Camera = {
@@ -21,13 +22,15 @@ export type UseTileMapStoreReturn = {
   addTiles: (tiles: Tile[]) => void;
   getTile: (position: Position) => Tile | undefined;
   getVisibleTiles: (bbox: BBox) => Tile[];
+  selectTileAtPosition: (position: Position) => void;
   store: UseBoundStore<StoreApi<TileMapState>>;
 };
 
 type TileMapState = {
   tiles: Map<string, Tile>;
+  spatialIndex: TileRBush;
 
-  spatialIndex: Map<string, Tile[]>;
+  selectedTileId: string | undefined;
 
   // camera: Camera;
 
@@ -36,6 +39,9 @@ type TileMapState = {
   getTile: (position: Position) => Tile | undefined;
 
   getVisibleTiles: (bbox: BBox) => Tile[];
+
+  selectTileAtPosition: (position: Position) => void;
+
   // moveCamera: (position: Position) => void;
 
   // setCamera: (camera: Camera) => void;
@@ -45,7 +51,13 @@ type TileMapStorePartialState = {
   tiles?: Partial<Tile>[];
 };
 
-const SPATIAL_CELL_SIZE = 100;
+type UseTileMapStoreProps = {
+  initialState: TileMapStorePartialState;
+  tileWidth: number;
+  tileHeight: number;
+};
+
+// const SPATIAL_INDEX_SIZE = 1000;
 
 const TILE_WIDTH = 100;
 const TILE_HEIGHT = 100;
@@ -68,48 +80,52 @@ const directions: Position[] = [
   [0, -1],
 ];
 
-export const useTileMapStore = (
-  initialState: TileMapStorePartialState = {},
-): UseTileMapStoreReturn => {
+const getSpatialIndexKey = (position: Position) => {
+  return 'si-0,0';
+  // return `${Math.floor(position[0] / SPATIAL_INDEX_SIZE)},${Math.floor(
+  //   position[1] / SPATIAL_INDEX_SIZE,
+  // )}`;
+};
+
+const getTileBBox = (tile: Tile): BBox => {
+  return pointToBBox(tile.position, TILE_WIDTH);
+};
+
+export const useTileMapStore = ({
+  initialState,
+  tileWidth = TILE_WIDTH,
+  tileHeight = TILE_HEIGHT,
+}: UseTileMapStoreProps): UseTileMapStoreReturn => {
   const store = useMemo(
     () =>
       create<TileMapState>((set, get) => ({
+        selectedTileId: undefined,
+
         tiles: new Map<string, Tile>(),
-
-        spatialIndex: new Map<string, Tile[]>(),
-
-        // camera: {
-        //   position: [0, 0],
-        //   bbox: [0, 0, 0, 0],
-        //   screenBBox: [0, 0, 0, 0],
-        //   zoom: 0,
-        // },
+        spatialIndex: createRTree(),
 
         addTiles: (tiles: Tile[]) =>
           set((state) => {
-            const newTiles = new Map(state.tiles);
-            const newSpatialIndex = new Map(state.spatialIndex);
+            const tilesMap = new Map(state.tiles);
 
             for (const tile of tiles) {
               const key = tileToString(tile);
               tile.id = key;
-              newTiles.set(key, tile);
-
-              const indexKey = positionToString([
-                Math.floor(tile.position[0] / SPATIAL_CELL_SIZE),
-                Math.floor(tile.position[1] / SPATIAL_CELL_SIZE),
-              ]);
-
-              const tilesInCell = newSpatialIndex.get(indexKey) ?? [];
-              tilesInCell.push(tile);
-              newSpatialIndex.set(indexKey, tilesInCell);
+              tilesMap.set(key, tile);
             }
+            // faster than inserting one by one
+            // we don't follow recommended practice of
+            // creating a new tree for each update
+            // as the spatialIndex is private to the store
+            state.spatialIndex.load(tiles);
 
             for (const tile of tiles.values()) {
+              const [tx, ty] = tile.position;
+
               for (const [dx, dy] of directions) {
-                const adjacentX = tile.position[0] + dx * TILE_WIDTH;
-                const adjacentY = tile.position[1] + dy * TILE_HEIGHT;
-                const adjacent = newTiles.get(
+                const adjacentX = tx + dx * tileWidth;
+                const adjacentY = ty + dy * tileHeight;
+                const adjacent = state.tiles.get(
                   positionToString([adjacentX, adjacentY]),
                 );
                 if (adjacent) {
@@ -119,11 +135,7 @@ export const useTileMapStore = (
               }
             }
 
-            return {
-              ...state,
-              tiles: newTiles,
-              spatialIndex: newSpatialIndex,
-            };
+            return { ...state, tiles: tilesMap };
           }),
 
         getTile: (position: Position) =>
@@ -131,40 +143,44 @@ export const useTileMapStore = (
 
         getVisibleTiles: (bbox: BBox) => {
           const { spatialIndex } = get();
-          const visible: Tile[] = [];
 
-          const rect = bboxToRect(bbox);
-
-          const startX = rect.x;
-          const startY = rect.y;
-          const endX = rect.x + rect.width;
-          const endY = rect.y + rect.height;
-
-          const startCellX = Math.floor(startX / SPATIAL_CELL_SIZE);
-          const startCellY = Math.floor(startY / SPATIAL_CELL_SIZE);
-          const endCellX = Math.floor(endX / SPATIAL_CELL_SIZE);
-          const endCellY = Math.floor(endY / SPATIAL_CELL_SIZE);
-
-          for (let cellX = startCellX; cellX <= endCellX; cellX++) {
-            for (let cellY = startCellY; cellY <= endCellY; cellY++) {
-              const indexKey = positionToString([cellX, cellY]);
-              const tilesInCell = spatialIndex.get(indexKey) ?? [];
-              for (const tile of tilesInCell) {
-                const [x, y] = tile.position;
-                if (
-                  x < endX &&
-                  x + TILE_WIDTH > startX &&
-                  y < endY &&
-                  y + TILE_HEIGHT > startY
-                ) {
-                  visible.push(tile);
-                }
-              }
-            }
-          }
+          const visible = findByBBox(spatialIndex, bbox);
 
           return visible;
         },
+
+        selectTileAtPosition: (position: Position) =>
+          set((state) => {
+            // get the tiles that fall in the position
+            const [x, y] = position;
+            const bbox: BBox = pointToBBox([x, y], 1);
+            const tiles = state.getVisibleTiles(bbox);
+            const newTiles = new Map(state.tiles);
+            let selectedTileId = state.selectedTileId;
+
+            // deselect the previously selected tile
+            if (selectedTileId) {
+              const selected = state.tiles.get(selectedTileId);
+              if (selected) {
+                log.debug('deselecting tile', selected.id);
+                selected.isSelected = false;
+                newTiles.set(selected.id, selected);
+                selectedTileId = undefined;
+              }
+            }
+
+            // log.debug('tiles at position', position, tiles);
+
+            if (tiles.length === 1) {
+              const tile = tiles[0];
+              tile.isSelected = !tile.isSelected;
+              log.debug('selecting tile', tile.id);
+              newTiles.set(tile.id, tile);
+              selectedTileId = tile.id;
+            }
+
+            return { ...state, tiles: newTiles, selectedTileId };
+          }),
 
         // moveCamera: (position: Position) =>
         //   set((state) => ({
@@ -179,6 +195,7 @@ export const useTileMapStore = (
   const addTiles = store((state) => state.addTiles);
   const getVisibleTiles = store((state) => state.getVisibleTiles);
   const getTile = store((state) => state.getTile);
+  const selectTileAtPosition = store((state) => state.selectTileAtPosition);
 
   useEffect(() => {
     const { tiles } = initialState;
@@ -187,7 +204,7 @@ export const useTileMapStore = (
       const tilesToAdd = tiles.map((v) => createTile({ ...v }));
       addTiles(tilesToAdd);
 
-      log.debug('added tiles', store.getState().tiles);
+      log.debug('added tiles', store.getState().tiles.size);
     }
   }, [initialState]);
 
@@ -196,5 +213,6 @@ export const useTileMapStore = (
     store,
     getVisibleTiles,
     getTile,
+    selectTileAtPosition,
   };
 };

@@ -28,15 +28,15 @@ export const World = ({ bbox, children, matrix, store }: WorldProps) => {
 
   const visibleTiles = useMemo(() => {
     const tiles = getVisibleTiles(bbox.value);
-    // log.debug('visibleTiles', bboxToRect(bbox.value), tiles.length);
+    log.debug('visibleTiles', bboxToRect(bbox.value), tiles.length);
     // log.debug('visibleTiles', store.store.getState());
     return tiles;
-  }, [bbox.value, getVisibleTiles]);
+  }, [bbox.value, getVisibleTiles, tiles]);
 
   useEffect(() => {
     //   const visibleTiles = getVisibleTiles(bbox.value);
-    log.debug('tiles', visibleTiles.length);
-  }, [bbox, tiles]);
+    log.debug('tiles', tiles.size);
+  }, [tiles]);
 
   return (
     <Group matrix={matrix}>

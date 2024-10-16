@@ -23,7 +23,7 @@
       "node"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|react-native.*|@react-native.*|@?react-navigation.*|@shopify/react-native-skia)/)"
+      "node_modules/(?!(quickselect.*|rbush|rbush.*|react-native|react-native.*|@react-native.*|@?react-navigation.*|@shopify/react-native-skia)/)"
     ],
     "setupFiles": [
       "<rootDir>/jest.setup.js"
@@ -47,6 +47,7 @@
     "expo-status-bar": "~1.12.1",
     "expo-system-ui": "~3.0.7",
     "expo-web-browser": "~13.0.3",
+    "rbush": "^4.0.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.74.5",
@@ -63,6 +64,7 @@
     "@testing-library/react-native": "^12.7.2",
     "@types/eslint": "^8",
     "@types/jest": "^29.5.12",
+    "@types/rbush": "^4.0.0",
     "@types/react": "~18.2.45",
     "@types/react-test-renderer": "^18.0.7",
     "@typescript-eslint/eslint-plugin": "^7.4.0",

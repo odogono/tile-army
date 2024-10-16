@@ -1,11 +1,4 @@
-import { BBox } from 'geojson';
-
-type Rect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
+import { BBox, Position } from 'geojson';
 
 /**
  * Returns a bounding box for a rectangle.
@@ -30,4 +23,25 @@ export const bboxToRect = (bbox: BBox): Rect => {
 
 export const bboxToString = (bbox: BBox) => {
   return `${bbox[0].toFixed(2)}, ${bbox[3].toFixed(2)}, ${bbox[2].toFixed(2)}, ${bbox[1].toFixed(2)}`;
+};
+
+export const pointToBBox = (point: Position, size: number = 100): BBox => {
+  const halfSize = size / 2;
+  return [
+    // sw
+    point[0] - halfSize,
+    point[1] + halfSize,
+    // ne
+    point[0] + halfSize,
+    point[1] - halfSize,
+  ];
+};
+
+export const bboxIntersectsBBox = (bbox1: BBox, bbox2: BBox) => {
+  const [west1, south1, east1, north1] = bbox1;
+  const [west2, south2, east2, north2] = bbox2;
+
+  return (
+    west1 <= east2 && east1 >= west2 && south1 >= north2 && north1 <= south2
+  );
 };

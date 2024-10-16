@@ -67,7 +67,11 @@ export const Index = () => {
     scale: 1,
   });
 
-  const store = useTileMapStore(initialState);
+  const store = useTileMapStore({
+    initialState,
+    tileWidth: 100,
+    tileHeight: 100,
+  });
 
   const touchPointPos = useSharedValue<Position>([0, 0]);
 
@@ -91,14 +95,21 @@ export const Index = () => {
     runOnJS(updateBBox)(bbox.value);
   });
 
-  const tapGesture = Gesture.Tap().onStart((event) => {
-    'worklet';
-    const worldPos = screenToWorld([event.x, event.y]);
-    touchPointPos.value = worldPos;
+  const tapGesture = Gesture.Tap()
+    .onStart((event) => {
+      'worklet';
+      const worldPos = screenToWorld([event.x, event.y]);
+      touchPointPos.value = worldPos;
 
-    runOnJS(updateTapPosition)([event.x, event.y]);
-    runOnJS(updateWorldTapPosition)(worldPos);
-  });
+      runOnJS(updateTapPosition)([event.x, event.y]);
+      runOnJS(updateWorldTapPosition)(worldPos);
+    })
+    .onEnd((event) => {
+      'worklet';
+
+      const worldPos = screenToWorld([event.x, event.y]);
+      runOnJS(store.selectTileAtPosition)(worldPos);
+    });
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
@@ -125,7 +136,9 @@ export const Index = () => {
       zoomFactor: 1.5,
     });
     position.value = withTiming(toPos, { duration: 300 });
-    scale.value = withTiming(toScale, { duration: 300 });
+    scale.value = withTiming(toScale, { duration: 300 }, () => {
+      runOnJS(updateBBox)(bbox.value);
+    });
   };
 
   const handleZoomOut = () => {
@@ -135,13 +148,17 @@ export const Index = () => {
       zoomFactor: 1 / 1.5,
     });
     position.value = withTiming(toPos, { duration: 300 });
-    scale.value = withTiming(toScale, { duration: 300 });
+    scale.value = withTiming(toScale, { duration: 300 }, () => {
+      runOnJS(updateBBox)(bbox.value);
+    });
   };
 
   const handleReset = () => {
     const target = [220, 220];
     position.value = withTiming(target, { duration: 300 });
-    scale.value = withTiming(1, { duration: 300 });
+    scale.value = withTiming(1, { duration: 300 }, () => {
+      runOnJS(updateBBox)(bbox.value);
+    });
   };
 
   return (

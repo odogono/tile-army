@@ -1,9 +1,11 @@
-import type { Position } from 'geojson';
+import type { Position } from '@types';
 
 export type Tile = {
   id: string;
 
   position: Position;
+
+  size: number;
 
   adjacent?: Tile[] | null;
 
@@ -22,6 +24,7 @@ export const createTile = (props: Partial<Tile>): Tile => {
   return {
     id: `${x},${y}`,
     position: [x, y],
+    size: 100,
     adjacent: null,
     colour: '#FFF',
     ...props,
