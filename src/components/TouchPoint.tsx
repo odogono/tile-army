@@ -7,14 +7,25 @@ import {
 } from '@shopify/react-native-skia';
 import { useEffect, useMemo } from 'react';
 import {
+  runOnJS,
+  SharedValue,
   useDerivedValue,
   useSharedValue,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { Position } from 'geojson';
+import { Position } from '@types';
+import { createLogger } from '@helpers/log';
 
-export const TouchPoint = ({ pos }: { pos: Position }) => {
+const log = createLogger('TouchPoint');
+
+export const TouchPoint = ({
+  pos,
+  isVisible,
+}: {
+  pos: Position;
+  isVisible: SharedValue<boolean>;
+}) => {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -25,21 +36,6 @@ export const TouchPoint = ({ pos }: { pos: Position }) => {
     path.addCircle(0, 0, 5);
     return path;
   }, []);
-
-  const startAnimation = () => {
-    scale.value = withSequence(
-      withTiming(0.2, { duration: 0 }),
-      withTiming(10, { duration: 500 }),
-    );
-    opacity.value = withSequence(
-      withTiming(1, { duration: 0 }),
-      withTiming(0, { duration: 400 }),
-    );
-  };
-
-  useEffect(() => {
-    startAnimation();
-  }, [pos]);
 
   const matrix = useDerivedValue(() => {
     const m3 = Skia.Matrix();
@@ -54,7 +50,27 @@ export const TouchPoint = ({ pos }: { pos: Position }) => {
     return `rgba(102, 102, 102, ${opacity.value})`;
   });
 
-  if (!pos) {
+  const startAnimation = () => {
+    scale.value = withSequence(
+      withTiming(0.2, { duration: 0 }),
+      withTiming(10, { duration: 500 }),
+    );
+    opacity.value = withSequence(
+      withTiming(1, { duration: 0 }),
+      withTiming(0, { duration: 400 }, () => {
+        // runOnJS(log.debug)('[TouchPoint] animation finished');
+        isVisible.value = false;
+      }),
+    );
+  };
+
+  useEffect(() => {
+    if (isVisible?.value) {
+      startAnimation();
+    }
+  }, [pos, isVisible]);
+
+  if (!pos || !isVisible?.value) {
     return null;
   }
 

@@ -25,12 +25,14 @@ export const useWorldTransform = ({
 
   const bbox = useDerivedValue<BBox>(() => {
     const [x, y] = position.value;
+    const [sx, sy] = [x / scale.value, y / scale.value];
     const width = screenWidth / scale.value;
     const height = screenHeight / scale.value;
     const hWidth = width / 2;
     const hHeight = height / 2;
+
     // sw point, then ne point
-    return [x - hWidth, y + hHeight, x + hWidth, y - hHeight];
+    return [sx - hWidth, sy + hHeight, sx + hWidth, sy - hHeight];
   }, [position, screenWidth, screenHeight]);
 
   const matrix = useDerivedValue(() => {

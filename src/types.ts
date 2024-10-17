@@ -6,3 +6,5 @@ export type Rect = {
   width: number;
   height: number;
 };
+
+export type Dimensions = [number, number];

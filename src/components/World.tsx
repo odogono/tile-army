@@ -1,42 +1,46 @@
 import { TileComponent } from '@components/Tile';
 import { Group, SkMatrix } from '@shopify/react-native-skia';
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import { runOnJS, SharedValue, useDerivedValue } from 'react-native-reanimated';
 import { UseTileMapStoreReturn } from '@model/TileMapStore';
-import { BBox } from 'geojson';
+import { BBox, Dimensions } from '@types';
 import { createLogger } from '@helpers/log';
-import { bboxToRect } from '@helpers/geo';
+import { Tile } from '../model/Tile';
 
 export type WorldProps = {
   children: React.ReactNode;
   matrix: SharedValue<SkMatrix>;
   store: UseTileMapStoreReturn;
   bbox: SharedValue<BBox>;
+  screenDimensions: Dimensions;
 };
 
 const log = createLogger('World');
 
-export const World = ({ bbox, children, matrix, store }: WorldProps) => {
+export const World = ({
+  bbox,
+  children,
+  matrix,
+  store,
+  screenDimensions,
+}: WorldProps) => {
   const { getVisibleTiles } = store;
-  const tiles = store.store((state) => state.tiles);
+  const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
+  // const tiles = store.store((state) => state.tiles);
 
-  // const visibleTiles = useDerivedValue(() => {
-  //   return runOnJS(getVisibleTiles)(bbox.value);
+  const updateVisibleTiles = useCallback(
+    (bbox: BBox) => {
+      const visible = getVisibleTiles(bbox);
+      // log.debug('visible', visible.length, bbox);
+      setVisibleTiles(visible);
+    },
+    [getVisibleTiles],
+  );
 
-  //   // return getVisibleTiles(bbox.value);
-  // }, [bbox, getVisibleTiles]);
-
-  const visibleTiles = useMemo(() => {
-    const tiles = getVisibleTiles(bbox.value);
-    log.debug('visibleTiles', bboxToRect(bbox.value), tiles.length);
-    // log.debug('visibleTiles', store.store.getState());
-    return tiles;
-  }, [bbox.value, getVisibleTiles, tiles]);
-
-  useEffect(() => {
-    //   const visibleTiles = getVisibleTiles(bbox.value);
-    log.debug('tiles', tiles.size);
-  }, [tiles]);
+  // when the bbox changes, update the visible tiles
+  useDerivedValue(() => {
+    runOnJS(updateVisibleTiles)(bbox.value);
+  });
 
   return (
     <Group matrix={matrix}>

@@ -21,6 +21,8 @@ type Camera = {
 export type UseTileMapStoreReturn = {
   addTiles: (tiles: Tile[]) => void;
   getTile: (position: Position) => Tile | undefined;
+  getTileById: (id: string) => Tile | undefined;
+  getSelectedTile: () => Tile | undefined;
   getVisibleTiles: (bbox: BBox) => Tile[];
   selectTileAtPosition: (position: Position) => void;
   store: UseBoundStore<StoreApi<TileMapState>>;
@@ -37,6 +39,10 @@ type TileMapState = {
   addTiles: (tiles: Tile[]) => void;
 
   getTile: (position: Position) => Tile | undefined;
+
+  getTileById: (id: string) => Tile | undefined;
+
+  getSelectedTile: () => Tile | undefined;
 
   getVisibleTiles: (bbox: BBox) => Tile[];
 
@@ -141,6 +147,16 @@ export const useTileMapStore = ({
         getTile: (position: Position) =>
           get().tiles.get(positionToString(position)),
 
+        getTileById: (id: string) => get().tiles.get(id),
+
+        getSelectedTile: () => {
+          const { selectedTileId } = get();
+          if (!selectedTileId) {
+            return undefined;
+          }
+          return get().tiles.get(selectedTileId);
+        },
+
         getVisibleTiles: (bbox: BBox) => {
           const { spatialIndex } = get();
 
@@ -157,27 +173,46 @@ export const useTileMapStore = ({
             const tiles = state.getVisibleTiles(bbox);
             const newTiles = new Map(state.tiles);
             let selectedTileId = state.selectedTileId;
+            const existingTile = selectedTileId
+              ? state.tiles.get(selectedTileId)
+              : undefined;
 
-            // deselect the previously selected tile
-            if (selectedTileId) {
-              const selected = state.tiles.get(selectedTileId);
-              if (selected) {
-                log.debug('deselecting tile', selected.id);
-                selected.isSelected = false;
-                newTiles.set(selected.id, selected);
-                selectedTileId = undefined;
+            const selectedTile = tiles.length === 1 ? tiles[0] : undefined;
+
+            // no new tile selected, and existing tile
+            // no new tile selected, and no existing tile
+            // new tile selected, and existing tile
+            // new tile selected, and no existing tile
+
+            if (selectedTile) {
+              selectedTileId = selectedTile.id;
+              selectedTile.isSelected = !selectedTile.isSelected;
+              newTiles.set(selectedTile.id, selectedTile);
+
+              if (existingTile && existingTile.id !== selectedTile.id) {
+                existingTile.isSelected = false;
+                newTiles.set(existingTile.id, existingTile);
               }
+            } else if (existingTile) {
+              existingTile.isSelected = false;
+              newTiles.set(existingTile.id, existingTile);
+              selectedTileId = undefined;
             }
 
-            // log.debug('tiles at position', position, tiles);
-
-            if (tiles.length === 1) {
-              const tile = tiles[0];
-              tile.isSelected = !tile.isSelected;
-              log.debug('selecting tile', tile.id);
-              newTiles.set(tile.id, tile);
-              selectedTileId = tile.id;
-            }
+            // if (tiles.length === 1) {
+            //   const tile = tiles[0];
+            //   tile.isSelected = !tile.isSelected;
+            //   log.debug('selecting tile', tile.id);
+            //   newTiles.set(tile.id, tile);
+            //   selectedTileId = tile.id;
+            // } else {
+            //   if (selected) {
+            //     log.debug('deselecting tile', selected.id);
+            //     selected.isSelected = false;
+            //     newTiles.set(selected.id, selected);
+            //     selectedTileId = undefined;
+            //   }
+            // }
 
             return { ...state, tiles: newTiles, selectedTileId };
           }),
@@ -196,6 +231,8 @@ export const useTileMapStore = ({
   const getVisibleTiles = store((state) => state.getVisibleTiles);
   const getTile = store((state) => state.getTile);
   const selectTileAtPosition = store((state) => state.selectTileAtPosition);
+  const getTileById = store((state) => state.getTileById);
+  const getSelectedTile = store((state) => state.getSelectedTile);
 
   useEffect(() => {
     const { tiles } = initialState;
@@ -213,6 +250,8 @@ export const useTileMapStore = ({
     store,
     getVisibleTiles,
     getTile,
+    getTileById,
+    getSelectedTile,
     selectTileAtPosition,
   };
 };

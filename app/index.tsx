@@ -1,19 +1,6 @@
-import { TileComponent } from '@components/Tile';
-import { TouchPoint } from '@components/TouchPoint';
 import { createLogger } from '@helpers/log';
-import { useWorldTransform } from '@hooks/useWorldTransform';
-import {
-  Blur,
-  Canvas,
-  Group,
-  LinearGradient,
-  Rect,
-  RoundedRect,
-  Skia,
-  SkMatrix,
-  useCanvasRef,
-} from '@shopify/react-native-skia';
-import React, { useEffect, useState } from 'react';
+import { Rect } from '@shopify/react-native-skia';
+import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   StyleSheet,
@@ -21,59 +8,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  SharedValue,
-  useAnimatedProps,
-  useDerivedValue,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 
 import type { BBox, Position } from 'geojson';
-import { useTileMapStore } from '@model/TileMapStore';
-import { Tile } from '@model/Tile';
-import { bboxToString } from '@helpers/geo';
-import { state as initialState } from '@model/state';
-import { World } from '@components/World';
+import { bboxToString, getBBoxCenter } from '@helpers/geo';
+import {
+  WorldCanvas,
+  WorldCanvasRef,
+  WorldTouchEvent,
+} from '@components/WorldCanvas';
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const log = createLogger('Index');
 
-// const WorldGroup = ({
-//   children,
-//   matrix,
-// }: {
-//   children: React.ReactNode;
-//   matrix: SharedValue<SkMatrix>;
-// }) => {
-//   return <Group matrix={matrix}>{children}</Group>;
-// };
-
 export const Index = () => {
-  const canvasRef = useCanvasRef();
-  const {
-    bbox,
-    position,
-    scale,
-    matrix,
-    screenToWorld,
-    calculateZoom,
-    cameraToWorld,
-  } = useWorldTransform({
-    screenWidth,
-    screenHeight,
-    scale: 1,
-  });
-
-  const store = useTileMapStore({
-    initialState,
-    tileWidth: 100,
-    tileHeight: 100,
-  });
-
-  const touchPointPos = useSharedValue<Position>([0, 0]);
+  const worldCanvasRef = useRef<WorldCanvasRef>(null);
 
   const {
     bboxString,
@@ -86,142 +35,88 @@ export const Index = () => {
     updateBBox,
   } = usePositionText();
 
-  const panGesture = Gesture.Pan().onChange((event) => {
-    'worklet';
-    const [x, y] = position.value;
-    position.value = [x - event.changeX, y - event.changeY];
-
-    runOnJS(updateWorldPosition)(cameraToWorld(position.value));
-    runOnJS(updateBBox)(bbox.value);
-  });
-
-  const tapGesture = Gesture.Tap()
-    .onStart((event) => {
-      'worklet';
-      const worldPos = screenToWorld([event.x, event.y]);
-      touchPointPos.value = worldPos;
-
-      runOnJS(updateTapPosition)([event.x, event.y]);
-      runOnJS(updateWorldTapPosition)(worldPos);
-    })
-    .onEnd((event) => {
-      'worklet';
-
-      const worldPos = screenToWorld([event.x, event.y]);
-      runOnJS(store.selectTileAtPosition)(worldPos);
-    });
-
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate((event) => {
-      'worklet';
-      const { position: toPos, scale: toScale } = calculateZoom({
-        focalPoint: [event.focalX, event.focalY],
-        zoomFactor: event.scale,
-      });
-      position.value = withTiming(toPos, { duration: 300 });
-      scale.value = withTiming(toScale, { duration: 300 });
-    })
-    .onEnd(() => {
-      'worklet';
-      runOnJS(updateWorldPosition)(position.value);
-    });
-
-  // Combine the existing gestures with the new pinch gesture
-  const gesture = Gesture.Simultaneous(panGesture, tapGesture, pinchGesture);
-
   const handleZoomIn = () => {
-    // 'worklet';
-    const { position: toPos, scale: toScale } = calculateZoom({
-      focalPoint: [screenWidth / 2, screenHeight / 2],
-      zoomFactor: 1.5,
-    });
-    position.value = withTiming(toPos, { duration: 300 });
-    scale.value = withTiming(toScale, { duration: 300 }, () => {
-      runOnJS(updateBBox)(bbox.value);
-    });
+    worldCanvasRef.current?.setZoom(1.5);
   };
 
   const handleZoomOut = () => {
-    // 'worklet';
-    const { position: toPos, scale: toScale } = calculateZoom({
-      focalPoint: [screenWidth / 2, screenHeight / 2],
-      zoomFactor: 1 / 1.5,
-    });
-    position.value = withTiming(toPos, { duration: 300 });
-    scale.value = withTiming(toScale, { duration: 300 }, () => {
-      runOnJS(updateBBox)(bbox.value);
-    });
+    worldCanvasRef.current?.setZoom(1 / 1.5);
   };
 
   const handleReset = () => {
-    const target = [220, 220];
-    position.value = withTiming(target, { duration: 300 });
-    scale.value = withTiming(1, { duration: 300 }, () => {
-      runOnJS(updateBBox)(bbox.value);
-    });
+    const tile = worldCanvasRef.current?.getSelectedTile();
+    log.debug('[handleReset]', tile);
+  };
+
+  const handleTouch = (event: WorldTouchEvent) => {
+    log.debug('[handleTouch]', event);
+
+    updateTapPosition(event.position);
+    updateWorldTapPosition(event.world);
+    const tile = worldCanvasRef.current?.selectTileAtPosition(event.world);
+    if (tile) {
+      log.debug('[handleTouch] selected', tile);
+      worldCanvasRef.current?.moveToPosition(tile.position);
+    }
+  };
+
+  const handlePinch = (event: WorldTouchEvent) => {
+    log.debug('[handlePinch]', event);
+  };
+
+  const handleWorldPositionChange = (event: WorldTouchEvent) => {
+    // log.debug('[handleWorldPositionChange]', event);
+    updateBBox(event.bbox);
+    updateWorldPosition(event.world);
   };
 
   return (
-    <GestureDetector gesture={gesture}>
-      <View style={styles.container}>
-        <Canvas
-          style={styles.canvas}
-          ref={canvasRef}
-          onLayout={(event) => {
-            const { width, height } = event.nativeEvent.layout;
-            // setScreenWidth(width);
-            // setScreenHeight(height);
-          }}
-        >
-          <World bbox={bbox} matrix={matrix} store={store}>
-            <TouchPoint pos={touchPointPos.value} />
-          </World>
-          {/* <WorldGroup matrix={matrix}>
-            <TileComponent position={[220, 220]} colour='#3F3' />
-            <TileComponent position={[0, 220]} />
-            <TileComponent position={[0, 0]} colour='#FFF' />
-            <TouchPoint pos={touchPointPos.value} />
-          </WorldGroup> */}
-          <Rect
-            x={0}
-            y={screenHeight / 2}
-            width={screenWidth}
-            height={1}
-            color='red'
-          />
-          <Rect
-            x={screenWidth / 2}
-            y={0}
-            width={1}
-            height={screenHeight}
-            color='red'
-          />
-        </Canvas>
-        <Text style={[styles.positionText, styles.worldPositionText]}>
-          World {worldPosition}
-        </Text>
-        <Text style={[styles.positionText, styles.localTapPositionText]}>
-          LocalT {tapPosition}
-        </Text>
-        <Text style={[styles.positionText, styles.worldTapPositionText]}>
-          WorldT {worldTapPosition}
-        </Text>
-        <Text style={[styles.positionText, styles.bboxText]}>
-          BBox {bboxString}
-        </Text>
-        <View style={styles.zoomButtonsContainer}>
-          <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
-            <Text style={styles.zoomButtonText}>+</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
-            <Text style={styles.zoomButtonText}>-</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.zoomButton} onPress={handleReset}>
-            <Text style={styles.zoomButtonText}>R</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <WorldCanvas
+        ref={worldCanvasRef}
+        onTouch={handleTouch}
+        onPinch={handlePinch}
+        onWorldPositionChange={handleWorldPositionChange}
+      >
+        <Rect
+          x={0}
+          y={screenHeight / 2}
+          width={screenWidth}
+          height={1}
+          color='red'
+        />
+        <Rect
+          x={screenWidth / 2}
+          y={0}
+          width={1}
+          height={screenHeight}
+          color='red'
+        />
+      </WorldCanvas>
+      <Text style={[styles.positionText, styles.worldPositionText]}>
+        World {worldPosition}
+      </Text>
+      <Text style={[styles.positionText, styles.localTapPositionText]}>
+        LocalT {tapPosition}
+      </Text>
+      <Text style={[styles.positionText, styles.worldTapPositionText]}>
+        WorldT {worldTapPosition}
+      </Text>
+      <Text style={[styles.positionText, styles.bboxText]}>
+        BBox {bboxString}
+      </Text>
+      <View style={styles.zoomButtonsContainer}>
+        <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
+          <Text style={styles.zoomButtonText}>+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
+          <Text style={styles.zoomButtonText}>-</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.zoomButton} onPress={handleReset}>
+          <Text style={styles.zoomButtonText}>R</Text>
+        </TouchableOpacity>
       </View>
-    </GestureDetector>
+    </View>
   );
 };
 
@@ -243,7 +138,7 @@ const usePositionText = () => {
   };
 
   const updateBBox = (bbox: BBox) => {
-    setBBox(bboxToString(bbox));
+    setBBox(bboxToString(bbox) + ' ~ ' + positionToString(getBBoxCenter(bbox)));
   };
 
   return {
@@ -268,10 +163,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'white',
-  },
-  canvas: {
-    flex: 1,
-    width: '100%',
   },
   positionText: {
     position: 'absolute',
