@@ -4,19 +4,25 @@ import { useWorldTransform } from '@hooks/useWorldTransform';
 import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
 import { StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
+import {
+  runOnJS,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import type { BBox, Dimensions, Position } from '@types';
 import { useTileMapStore } from '@model/TileMapStore';
 import { Tile } from '@model/Tile';
 import { state as initialState } from '@model/state';
-import { World } from '@components/World';
+import { TileContainer } from '@components/TileContainer';
 
 export type WorldCanvasRef = {
   setZoom: (zoomFactor: number) => void;
@@ -74,14 +80,20 @@ export const WorldCanvas = forwardRef(
       scale: 1,
     });
 
-    useEffect(() => {
+    const notifyWorldPositionChange = useCallback((pos: Position) => {
       onWorldPositionChange({
         position: position.value,
         world: cameraToWorld(position.value),
         bbox: bbox.value,
       });
-      log.debug('screenDimensions', screenDimensions);
-    }, [screenDimensions[0], screenDimensions[1]]);
+    }, []);
+
+    // whenever the position changes, call the onWorldPositionChange callback
+    useDerivedValue(() => {
+      // important that the position.value is referenced, otherwise
+      // the callback will not be called
+      runOnJS(notifyWorldPositionChange)(position.value);
+    });
 
     useImperativeHandle(forwardedRef, () => ({
       getSelectedTile: () => {
@@ -94,25 +106,9 @@ export const WorldCanvas = forwardRef(
           zoomFactor,
         });
         position.value = withTiming(toPos, { duration: 300 });
-        scale.value = withTiming(toScale, { duration: 300 }, () => {
-          runOnJS(onWorldPositionChange)({
-            position: position.value,
-            world: cameraToWorld(position.value),
-            bbox: bbox.value,
-          });
-          // runOnJS(updateBBox)(bbox.value);
-        });
+        scale.value = withTiming(toScale, { duration: 300 });
       },
       moveToPosition: (worldPosition: Position, targetScale?: number) => {
-        const onFinish = () => {
-          'worklet';
-          runOnJS(onWorldPositionChange)({
-            position: position.value,
-            world: cameraToWorld(position.value),
-            bbox: bbox.value,
-          });
-        };
-
         if (targetScale !== undefined) {
           scale.value = withTiming(targetScale, { duration: 300 });
         }
@@ -123,19 +119,12 @@ export const WorldCanvas = forwardRef(
           worldToCamera(worldPosition),
         );
 
-        position.value = withTiming(
-          worldToCamera(worldPosition),
-          { duration: 300 },
-          onFinish,
-        );
+        position.value = withTiming(worldToCamera(worldPosition), {
+          duration: 300,
+        });
       },
       setPosition: (worldPosition: Position) => {
         position.value = worldPosition;
-        runOnJS(onWorldPositionChange)({
-          position: position.value,
-          world: cameraToWorld(position.value),
-          bbox: bbox.value,
-        });
       },
       selectTileAtPosition: (worldPosition: Position) => {
         store.selectTileAtPosition(worldPosition);
@@ -148,13 +137,6 @@ export const WorldCanvas = forwardRef(
       // runOnJS(log.debug)('[panGesture] change');
       const [x, y] = position.value;
       position.value = [x - event.changeX, y - event.changeY];
-
-      runOnJS(onWorldPositionChange)({
-        position: position.value,
-        world: cameraToWorld(position.value),
-        bbox: bbox.value,
-      });
-      // runOnJS(updateBBox)(bbox.value);
     });
 
     const tapGesture = Gesture.Tap()
@@ -215,7 +197,7 @@ export const WorldCanvas = forwardRef(
           }}
         >
           {isLayoutValid && (
-            <World
+            <TileContainer
               bbox={bbox}
               matrix={matrix}
               store={store}
@@ -225,7 +207,7 @@ export const WorldCanvas = forwardRef(
                 pos={touchPointPos.value}
                 isVisible={touchPointVisible}
               />
-            </World>
+            </TileContainer>
           )}
 
           {children}

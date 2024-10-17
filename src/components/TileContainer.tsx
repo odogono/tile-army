@@ -7,7 +7,7 @@ import { BBox, Dimensions } from '@types';
 import { createLogger } from '@helpers/log';
 import { Tile } from '../model/Tile';
 
-export type WorldProps = {
+export type TileContainerProps = {
   children: React.ReactNode;
   matrix: SharedValue<SkMatrix>;
   store: UseTileMapStoreReturn;
@@ -15,15 +15,15 @@ export type WorldProps = {
   screenDimensions: Dimensions;
 };
 
-const log = createLogger('World');
+const log = createLogger('TileContainer');
 
-export const World = ({
+export const TileContainer = ({
   bbox,
   children,
   matrix,
   store,
   screenDimensions,
-}: WorldProps) => {
+}: TileContainerProps) => {
   const { getVisibleTiles } = store;
   const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
   // const tiles = store.store((state) => state.tiles);
