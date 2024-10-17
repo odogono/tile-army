@@ -2,15 +2,14 @@ import { TileComponent } from '@components/Tile';
 import { Group, SkMatrix } from '@shopify/react-native-skia';
 import React, { useCallback, useState } from 'react';
 import { runOnJS, SharedValue, useDerivedValue } from 'react-native-reanimated';
-import { UseTileMapStoreReturn } from '@model/TileMapStore';
 import { BBox, Dimensions } from '@types';
 import { createLogger } from '@helpers/log';
-import { Tile } from '../model/Tile';
+import { Tile } from '@model/Tile';
+import { useTileMapStoreActions } from '@model/useTileMapStore';
 
 export type TileContainerProps = {
   children: React.ReactNode;
   matrix: SharedValue<SkMatrix>;
-  store: UseTileMapStoreReturn;
   bbox: SharedValue<BBox>;
   screenDimensions: Dimensions;
 };
@@ -21,10 +20,10 @@ export const TileContainer = ({
   bbox,
   children,
   matrix,
-  store,
   screenDimensions,
 }: TileContainerProps) => {
-  const { getVisibleTiles } = store;
+  const { getVisibleTiles } = useTileMapStoreActions();
+
   const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
   // const tiles = store.store((state) => state.tiles);
 

@@ -4,11 +4,14 @@ import {
   UseWorldTransformProps,
 } from '../useWorldTransform';
 
+const onWorldPositionChange = jest.fn();
+
 describe('useWorldTransform', () => {
   const defaultProps: UseWorldTransformProps = {
     screenWidth: 400,
     screenHeight: 800,
     scale: 1,
+    onWorldPositionChange,
   };
 
   it('should initialize with default values', () => {

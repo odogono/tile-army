@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-import RNFS from 'expo-file-system';
-import {
-  consoleTransport,
-  fileAsyncTransport,
-  logger,
-} from 'react-native-logs';
+// import RNFS from 'expo-file-system';
+// import {
+//   consoleTransport,
+//   fileAsyncTransport,
+//   logger,
+// } from 'react-native-logs';
 
 // const config = {
 //   transport: __DEV__ ? consoleTransport : fileAsyncTransport,
@@ -24,12 +24,13 @@ import {
 // };
 
 export const createLogger = (prefix: string | null = null) => {
+  const prefixTxt = `[${prefix}]`;
   return {
-    log: (...args: any[]) => console.log(`[${prefix}]`, ...args),
-    debug: (...args: any[]) => console.debug(`[${prefix}]`, ...args),
-    info: (...args: any[]) => console.info(`[${prefix}]`, ...args),
-    warn: (...args: any[]) => console.warn(`[${prefix}]`, ...args),
-    error: (...args: any[]) => console.error(`[${prefix}]`, ...args),
+    log: (...args: any[]) => console.log(prefixTxt, ...args),
+    debug: (...args: any[]) => console.debug(prefixTxt, ...args),
+    info: (...args: any[]) => console.info(prefixTxt, ...args),
+    warn: (...args: any[]) => console.warn(prefixTxt, ...args),
+    error: (...args: any[]) => console.error(prefixTxt, ...args),
   };
 
   // return logger.createLogger({

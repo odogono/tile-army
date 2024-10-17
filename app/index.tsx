@@ -1,6 +1,7 @@
 import { createLogger } from '@helpers/log';
 import { Rect } from '@shopify/react-native-skia';
 import React, { useRef, useState } from 'react';
+import { FiberProvider } from 'its-fine';
 import {
   Dimensions,
   StyleSheet,
@@ -16,6 +17,8 @@ import {
   WorldCanvasRef,
   WorldTouchEvent,
 } from '@components/WorldCanvas';
+import { TileMapStoreProvider } from '@model/useTileMapStore';
+import { state } from '@model/state';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -49,13 +52,13 @@ export const Index = () => {
   };
 
   const handleTouch = (event: WorldTouchEvent) => {
-    log.debug('[handleTouch]', event);
+    // log.debug('[handleTouch]', event);
 
     updateTapPosition(event.position);
     updateWorldTapPosition(event.world);
     const tile = worldCanvasRef.current?.selectTileAtPosition(event.world);
     if (tile) {
-      log.debug('[handleTouch] selected', tile);
+      log.debug('[handleTouch] selected', tile.id);
       worldCanvasRef.current?.moveToPosition(tile.position);
     }
   };
@@ -71,52 +74,60 @@ export const Index = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <WorldCanvas
-        ref={worldCanvasRef}
-        onTouch={handleTouch}
-        onPinch={handlePinch}
-        onWorldPositionChange={handleWorldPositionChange}
-      >
-        <Rect
-          x={0}
-          y={screenHeight / 2}
-          width={screenWidth}
-          height={1}
-          color='red'
-        />
-        <Rect
-          x={screenWidth / 2}
-          y={0}
-          width={1}
-          height={screenHeight}
-          color='red'
-        />
-      </WorldCanvas>
-      <Text style={[styles.positionText, styles.worldPositionText]}>
-        World {worldPosition}
-      </Text>
-      <Text style={[styles.positionText, styles.localTapPositionText]}>
-        LocalT {tapPosition}
-      </Text>
-      <Text style={[styles.positionText, styles.worldTapPositionText]}>
-        WorldT {worldTapPosition}
-      </Text>
-      <Text style={[styles.positionText, styles.bboxText]}>
-        BBox {bboxString}
-      </Text>
-      <View style={styles.zoomButtonsContainer}>
-        <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
-          <Text style={styles.zoomButtonText}>+</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
-          <Text style={styles.zoomButtonText}>-</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.zoomButton} onPress={handleReset}>
-          <Text style={styles.zoomButtonText}>R</Text>
-        </TouchableOpacity>
+    <FiberProvider>
+      <View style={styles.container}>
+        <TileMapStoreProvider
+          tileWidth={100}
+          tileHeight={100}
+          importState={state}
+        >
+          <WorldCanvas
+            ref={worldCanvasRef}
+            onTouch={handleTouch}
+            onPinch={handlePinch}
+            onWorldPositionChange={handleWorldPositionChange}
+          >
+            <Rect
+              x={0}
+              y={screenHeight / 2}
+              width={screenWidth}
+              height={1}
+              color='red'
+            />
+            <Rect
+              x={screenWidth / 2}
+              y={0}
+              width={1}
+              height={screenHeight}
+              color='red'
+            />
+          </WorldCanvas>
+          <Text style={[styles.positionText, styles.worldPositionText]}>
+            World {worldPosition}
+          </Text>
+          <Text style={[styles.positionText, styles.localTapPositionText]}>
+            LocalT {tapPosition}
+          </Text>
+          <Text style={[styles.positionText, styles.worldTapPositionText]}>
+            WorldT {worldTapPosition}
+          </Text>
+          <Text style={[styles.positionText, styles.bboxText]}>
+            BBox {bboxString}
+          </Text>
+          <View style={styles.zoomButtonsContainer}>
+            <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
+              <Text style={styles.zoomButtonText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
+              <Text style={styles.zoomButtonText}>-</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomButton} onPress={handleReset}>
+              <Text style={styles.zoomButtonText}>R</Text>
+            </TouchableOpacity>
+          </View>
+        </TileMapStoreProvider>
       </View>
-    </View>
+    </FiberProvider>
   );
 };
 

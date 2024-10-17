@@ -2,21 +2,25 @@ import { Skia } from '@shopify/react-native-skia';
 import { useCallback } from 'react';
 import {
   clamp,
+  runOnJS,
   useDerivedValue,
   useSharedValue,
 } from 'react-native-reanimated';
 import type { BBox, Position } from 'geojson';
+import { WorldTouchEventCallback } from './types';
 
 export type UseWorldTransformProps = {
   screenWidth: number;
   screenHeight: number;
   scale: number;
+  onWorldPositionChange: WorldTouchEventCallback;
 };
 
 export const useWorldTransform = ({
   screenWidth,
   screenHeight,
   scale: initialScale = 1,
+  onWorldPositionChange,
 }: UseWorldTransformProps) => {
   const scale = useSharedValue(initialScale);
 
@@ -143,6 +147,21 @@ export const useWorldTransform = ({
       position: position.value,
     });
   }, []);
+
+  const notifyWorldPositionChange = useCallback((_pos: Position) => {
+    onWorldPositionChange({
+      position: position.value,
+      world: cameraToWorld(position.value),
+      bbox: bbox.value,
+    });
+  }, []);
+
+  // whenever the position changes, call the onWorldPositionChange callback
+  useDerivedValue(() => {
+    // important that the position.value is referenced, otherwise
+    // the callback will not be called
+    runOnJS(notifyWorldPositionChange)(position.value);
+  });
 
   return {
     bbox,

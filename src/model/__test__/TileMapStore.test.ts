@@ -1,33 +1,27 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { createLogger } from '../../helpers/log';
-import { useTileMapStore } from '../TileMapStore';
+import { createLogger } from '@helpers/log';
+import { rectToBBox } from '@helpers/geo';
+import { createTileMapStore, TileMapStore } from '../TileMapStore';
 import { tileFromPosition as tilePos } from '../Tile';
 
 const log = createLogger('TileMapStore.test');
 
 describe('TileMapStore', () => {
-  let store: ReturnType<typeof useTileMapStore>['store'];
-  let addTiles: ReturnType<typeof useTileMapStore>['addTiles'];
-  let getVisibleTiles: ReturnType<typeof useTileMapStore>['getVisibleTiles'];
-  let getTile: ReturnType<typeof useTileMapStore>['getTile'];
+  let store: TileMapStore;
+  let addTiles: ReturnType<TileMapStore['prototype']['addTiles']>;
+  let getTile: ReturnType<TileMapStore['prototype']['getTile']>;
+  let getVisibleTiles: ReturnType<TileMapStore['prototype']['getVisibleTiles']>;
   let selectTileAtPosition: ReturnType<
-    typeof useTileMapStore
-  >['selectTileAtPosition'];
+    TileMapStore['prototype']['selectTileAtPosition']
+  >;
 
   beforeEach(() => {
-    const { result } = renderHook(() =>
-      useTileMapStore({
-        initialState: {},
-        tileWidth: 100,
-        tileHeight: 100,
-      }),
-    );
-    store = result.current.store;
-    addTiles = result.current.addTiles;
-    getVisibleTiles = result.current.getVisibleTiles;
-    getTile = result.current.getTile;
-    selectTileAtPosition = result.current.selectTileAtPosition;
+    store = createTileMapStore({ tileWidth: 100, tileHeight: 100 });
+    addTiles = store.getState().addTiles;
+    getTile = store.getState().getTile;
+    getVisibleTiles = store.getState().getVisibleTiles;
+    selectTileAtPosition = store.getState().selectTileAtPosition;
   });
 
   describe('addTile', () => {
@@ -73,7 +67,9 @@ describe('TileMapStore', () => {
 
       addTiles([tile1, tile2, tile3]);
 
-      const visibleTiles = getVisibleTiles([0, 0, 200, 200]);
+      const visibleTiles = getVisibleTiles(
+        rectToBBox({ x: 0, y: 0, width: 200, height: 200 }),
+      );
 
       expect(visibleTiles).toContain(tile1);
       expect(visibleTiles).toContain(tile2);
@@ -84,7 +80,9 @@ describe('TileMapStore', () => {
       const tile = tilePos([0, 0]);
       addTiles([tile]);
 
-      const visibleTiles = getVisibleTiles([1000, 1000, 2000, 2000]);
+      const visibleTiles = getVisibleTiles(
+        rectToBBox({ x: 1000, y: 1000, width: 2000, height: 2000 }),
+      );
 
       expect(visibleTiles).toHaveLength(0);
     });
@@ -98,6 +96,8 @@ describe('TileMapStore', () => {
 
       addTiles([tilePos([0, 0])]);
 
+      expect(store.getState().tiles.size).toEqual(1);
+
       // log.debug(store.getState().tiles);
 
       selectTileAtPosition([0, 0]);
@@ -105,6 +105,8 @@ describe('TileMapStore', () => {
       const tile = getTile([0, 0]);
 
       expect(tile?.isSelected).toBe(true);
+
+      expect(store.getState().selectedTileId).toEqual(tile.id);
     });
   });
 });

@@ -1,48 +1,24 @@
 import { TouchPoint } from '@components/TouchPoint';
 import { createLogger } from '@helpers/log';
-import { useWorldTransform } from '@hooks/useWorldTransform';
+import { useWorldTransform } from '@components/WorldCanvas/useWorldTransform';
 import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
-import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useState,
-} from 'react';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import {
-  runOnJS,
-  useDerivedValue,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import type { BBox, Dimensions, Position } from '@types';
-import { useTileMapStore } from '@model/TileMapStore';
-import { Tile } from '@model/Tile';
-import { state as initialState } from '@model/state';
+import type { Dimensions, Position } from '@types';
 import { TileContainer } from '@components/TileContainer';
-
-export type WorldCanvasRef = {
-  setZoom: (zoomFactor: number) => void;
-  setPosition: (worldPosition: Position) => void;
-  getSelectedTile: () => Tile | undefined;
-  selectTileAtPosition: (worldPosition: Position) => Tile | undefined;
-  moveToPosition: (worldPosition: Position, targetScale?: number) => void;
-};
-
-export type WorldTouchEvent = {
-  position: Position;
-  world: Position;
-  bbox: BBox;
-};
+import { useContextBridge } from 'its-fine';
+import { useTileMapStoreActions } from '@model/useTileMapStore';
+import type { WorldTouchEventCallback } from './types';
+import { WorldCanvasRef } from './types';
 
 export type WorldCanvasProps = {
   children: React.ReactNode;
-  onWorldPositionChange: (event: WorldTouchEvent) => void;
-  onTouch: (event: WorldTouchEvent) => void;
-  onPinch: (event: WorldTouchEvent) => void;
+  onWorldPositionChange: WorldTouchEventCallback;
+  onTouch: WorldTouchEventCallback;
+  onPinch: WorldTouchEventCallback;
 };
 
 const log = createLogger('WorldCanvas');
@@ -52,6 +28,7 @@ export const WorldCanvas = forwardRef(
     { children, onWorldPositionChange, onTouch, onPinch }: WorldCanvasProps,
     forwardedRef: React.Ref<WorldCanvasRef>,
   ) => {
+    const ContextBridge = useContextBridge();
     const canvasRef = useCanvasRef();
     const [screenDimensions, setScreenDimensions] = useState<Dimensions>([
       0, 0,
@@ -59,11 +36,7 @@ export const WorldCanvas = forwardRef(
     const touchPointPos = useSharedValue<Position>([0, 0]);
     const touchPointVisible = useSharedValue(false);
 
-    const store = useTileMapStore({
-      initialState,
-      tileWidth: 100,
-      tileHeight: 100,
-    });
+    const { getSelectedTile, selectTileAtPosition } = useTileMapStoreActions();
 
     const {
       bbox,
@@ -72,32 +45,17 @@ export const WorldCanvas = forwardRef(
       matrix,
       screenToWorld,
       calculateZoom,
-      cameraToWorld,
       worldToCamera,
     } = useWorldTransform({
       screenWidth: screenDimensions[0],
       screenHeight: screenDimensions[1],
       scale: 1,
-    });
-
-    const notifyWorldPositionChange = useCallback((pos: Position) => {
-      onWorldPositionChange({
-        position: position.value,
-        world: cameraToWorld(position.value),
-        bbox: bbox.value,
-      });
-    }, []);
-
-    // whenever the position changes, call the onWorldPositionChange callback
-    useDerivedValue(() => {
-      // important that the position.value is referenced, otherwise
-      // the callback will not be called
-      runOnJS(notifyWorldPositionChange)(position.value);
+      onWorldPositionChange,
     });
 
     useImperativeHandle(forwardedRef, () => ({
       getSelectedTile: () => {
-        return store.getSelectedTile();
+        return getSelectedTile();
       },
 
       setZoom: (zoomFactor: number) => {
@@ -127,8 +85,8 @@ export const WorldCanvas = forwardRef(
         position.value = worldPosition;
       },
       selectTileAtPosition: (worldPosition: Position) => {
-        store.selectTileAtPosition(worldPosition);
-        return store.getSelectedTile();
+        selectTileAtPosition(worldPosition);
+        return getSelectedTile();
       },
     }));
 
@@ -186,6 +144,10 @@ export const WorldCanvas = forwardRef(
 
     const isLayoutValid = screenDimensions[0] > 0 && screenDimensions[1] > 0;
 
+    // the use of ContextBridge is because Canvas runs in a different fiber
+    // and doesn't receive context as a result
+    // see:
+    // https://shopify.github.io/react-native-skia/docs/canvas/contexts/
     return (
       <GestureDetector gesture={gesture}>
         <Canvas
@@ -196,21 +158,22 @@ export const WorldCanvas = forwardRef(
             setScreenDimensions([width, height]);
           }}
         >
-          {isLayoutValid && (
-            <TileContainer
-              bbox={bbox}
-              matrix={matrix}
-              store={store}
-              screenDimensions={screenDimensions}
-            >
-              <TouchPoint
-                pos={touchPointPos.value}
-                isVisible={touchPointVisible}
-              />
-            </TileContainer>
-          )}
+          <ContextBridge>
+            {isLayoutValid && (
+              <TileContainer
+                bbox={bbox}
+                matrix={matrix}
+                screenDimensions={screenDimensions}
+              >
+                <TouchPoint
+                  pos={touchPointPos.value}
+                  isVisible={touchPointVisible}
+                />
+              </TileContainer>
+            )}
 
-          {children}
+            {children}
+          </ContextBridge>
         </Canvas>
       </GestureDetector>
     );
