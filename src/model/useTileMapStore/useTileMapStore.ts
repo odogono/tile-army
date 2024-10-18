@@ -3,7 +3,7 @@ import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { shallow } from 'zustand/shallow';
 import { createLogger } from '@helpers/log';
 import { TileMapContext } from './context';
-import { TileMapState } from '../types';
+import type { TileMapState } from '../TileMapStore';
 
 const log = createLogger('useTileMapStore');
 

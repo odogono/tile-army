@@ -1,11 +1,11 @@
 import { useRef } from 'react';
 import { createLogger } from '@helpers/log';
 import { TileMapContext } from './context';
-import { TileMapStoreProps } from '../types';
 import {
   createTileMapStore,
   importStateToStore,
-  TileMapStore,
+  type TileMapStore,
+  type TileMapStoreProps,
 } from '../TileMapStore';
 
 type AdditionalProps = {

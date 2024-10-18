@@ -2,8 +2,8 @@ import { renderHook } from '@testing-library/react-native';
 
 import { createLogger } from '@helpers/log';
 import { rectToBBox } from '@helpers/geo';
+import { tileFromPosition as tilePos } from '@model/Tile';
 import { createTileMapStore, TileMapStore } from '../TileMapStore';
-import { tileFromPosition as tilePos } from '../Tile';
 
 const log = createLogger('TileMapStore.test');
 
