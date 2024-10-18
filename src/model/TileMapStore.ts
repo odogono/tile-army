@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, createStore } from 'zustand';
 import type { BBox, Position } from '@types';
 import { createLogger } from '@helpers/log';
 import { pointToBBox } from '@helpers/geo';
@@ -46,7 +46,8 @@ export type TileMapStore = ReturnType<typeof createTileMapStore>;
 export const createTileMapStore = (
   initialState: Partial<TileMapStoreProps>,
 ) => {
-  return create<TileMapState>()(
+  // this creates a vanilla store, since it is destined to be used with a context
+  return createStore<TileMapState>()(
     // persist(
     (set, get) => ({
       ...defaultState,
