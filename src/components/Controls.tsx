@@ -1,9 +1,9 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export type ControlsProps = {
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onReset: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onReset?: () => void;
 };
 
 export const Controls = ({ onZoomIn, onZoomOut, onReset }: ControlsProps) => {
@@ -16,7 +16,7 @@ export const Controls = ({ onZoomIn, onZoomOut, onReset }: ControlsProps) => {
         <Text style={styles.zoomButtonText}>-</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.zoomButton} onPress={onReset}>
-        <Text style={styles.zoomButtonText}>R</Text>
+        <Text style={styles.zoomButtonText}>S</Text>
       </TouchableOpacity>
     </View>
   );

@@ -13,37 +13,63 @@ import { TileMapStoreProvider } from '@model/useTileMapStore';
 import { state } from '@model/state';
 import { useDebugDisplay } from '@components/DebugDisplay';
 import { Controls } from '@components/Controls';
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+import { useRenderingTrace } from '../src/helpers/useRenderingTrace';
+
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 const log = createLogger('Index');
+
+const ZOOM_FACTOR = 1.2;
+
+const GuideLines = () => (
+  <>
+    <Rect
+      x={0}
+      y={screenHeight / 2}
+      width={screenWidth}
+      height={1}
+      color='red'
+    />
+    <Rect
+      x={screenWidth / 2}
+      y={0}
+      width={1}
+      height={screenHeight}
+      color='red'
+    />
+  </>
+);
 
 export const Index = () => {
   const worldCanvasRef = useRef<WorldCanvasRef>(null);
 
-  const {
-    DebugDisplay,
-    updateWorldPosition,
-    updateTapPosition,
-    updateWorldTapPosition,
-    updateBBox,
-  } = useDebugDisplay();
+  // const {
+  //   DebugDisplay,
+  //   updateWorldPosition,
+  //   updateTapPosition,
+  //   updateWorldTapPosition,
+  //   updateBBox,
+  // } = useDebugDisplay();
 
   const handleZoomIn = useCallback(() => {
-    worldCanvasRef.current?.setZoom(1.5);
+    worldCanvasRef.current?.setZoom(ZOOM_FACTOR);
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    worldCanvasRef.current?.setZoom(1 / 1.5);
+    worldCanvasRef.current?.setZoom(1 / ZOOM_FACTOR);
   }, []);
 
   const handleReset = useCallback(() => {
-    const tile = worldCanvasRef.current?.getSelectedTile();
-    log.debug('[handleReset]', tile);
+    // const tile = worldCanvasRef.current?.getSelectedTile();
+    // log.debug('[handleReset]', tile);
+
+    worldCanvasRef.current?.startGame();
   }, []);
 
   const handleTouch = useCallback((event: WorldTouchEvent) => {
-    updateTapPosition(event.position);
-    updateWorldTapPosition(event.world);
+    // updateTapPosition(event.position);
+    // updateWorldTapPosition(event.world);
     const tile = worldCanvasRef.current?.selectTileAtPosition(event.world);
     if (tile) {
       log.debug('[handleTouch] selected', tile.id);
@@ -56,9 +82,12 @@ export const Index = () => {
   }, []);
 
   const handleWorldPositionChange = useCallback((event: WorldTouchEvent) => {
-    updateBBox(event.bbox);
-    updateWorldPosition(event.world);
+    // log.debug('[handleWorldPositionChange]', event);
+    // updateBBox(event.bbox);
+    // updateWorldPosition(event.world);
   }, []);
+
+  log.debug('render');
 
   return (
     <FiberProvider>
@@ -70,27 +99,14 @@ export const Index = () => {
         >
           <WorldCanvas
             ref={worldCanvasRef}
-            onTouch={handleTouch}
+            // onTouch={handleTouch}
             onPinch={handlePinch}
             onWorldPositionChange={handleWorldPositionChange}
           >
-            <Rect
-              x={0}
-              y={screenHeight / 2}
-              width={screenWidth}
-              height={1}
-              color='red'
-            />
-            <Rect
-              x={screenWidth / 2}
-              y={0}
-              width={1}
-              height={screenHeight}
-              color='red'
-            />
+            {/* <GuideLines /> */}
           </WorldCanvas>
 
-          <DebugDisplay />
+          {/* <DebugDisplay /> */}
           <Controls
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}

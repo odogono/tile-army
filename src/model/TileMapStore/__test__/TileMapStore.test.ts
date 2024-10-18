@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react-native';
 
 import { createLogger } from '@helpers/log';
 import { rectToBBox } from '@helpers/geo';
-import { tileFromPosition as tilePos } from '@model/Tile';
+import { createTile, tileFromPosition as tilePos } from '@model/Tile';
 import { createTileMapStore, TileMapStore } from '../TileMapStore';
 
 const log = createLogger('TileMapStore.test');
@@ -15,6 +15,9 @@ describe('TileMapStore', () => {
   let selectTileAtPosition: ReturnType<
     TileMapStore['prototype']['selectTileAtPosition']
   >;
+  let removeTilesOfTypes: ReturnType<
+    TileMapStore['prototype']['removeTilesOfTypes']
+  >;
 
   beforeEach(() => {
     store = createTileMapStore({ tileWidth: 100, tileHeight: 100 });
@@ -22,6 +25,7 @@ describe('TileMapStore', () => {
     getTile = store.getState().getTile;
     getVisibleTiles = store.getState().getVisibleTiles;
     selectTileAtPosition = store.getState().selectTileAtPosition;
+    removeTilesOfTypes = store.getState().removeTilesOfTypes;
   });
 
   describe('addTile', () => {
@@ -107,6 +111,26 @@ describe('TileMapStore', () => {
       expect(tile?.isSelected).toBe(true);
 
       expect(store.getState().selectedTileId).toEqual(tile.id);
+    });
+  });
+
+  describe('removeTilesOfTypes', () => {
+    it('should remove only tiles of type', () => {
+      addTiles([
+        createTile({ position: [0, 0], type: 'normal' }),
+        createTile({ position: [0, 100], type: 'option' }),
+        createTile({ position: [0, 200], type: 'normal' }),
+        createTile({ position: [0, 300], type: 'option' }),
+      ]);
+
+      expect(store.getState().tiles.size).toEqual(4);
+
+      removeTilesOfTypes(['option']);
+
+      expect(store.getState().tiles.size).toEqual(2);
+
+      const tiles = Array.from(store.getState().tiles.values());
+      expect(tiles.every((tile) => tile.type === 'normal')).toBe(true);
     });
   });
 });

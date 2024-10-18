@@ -1,5 +1,5 @@
 import { Skia } from '@shopify/react-native-skia';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   clamp,
   runOnJS,
@@ -13,7 +13,7 @@ export type UseWorldTransformProps = {
   screenWidth: number;
   screenHeight: number;
   scale: number;
-  onWorldPositionChange: WorldTouchEventCallback;
+  onWorldPositionChange?: WorldTouchEventCallback;
 };
 
 export const useWorldTransform = ({
@@ -106,7 +106,7 @@ export const useWorldTransform = ({
     [inverseMatrix],
   );
 
-  const screenToWorldMap = (points: Position[]) => {
+  const screenToWorldMap = useCallback((points: Position[]) => {
     'worklet';
     const m = inverseMatrix.value.get();
     const a = m[0],
@@ -122,19 +122,22 @@ export const useWorldTransform = ({
       const worldY = d * x + e * y + f;
       return [worldX, worldY];
     });
-  };
+  }, []);
 
-  const worldToCamera = (point: Position) => {
-    // 'worklet';
-    const [x, y] = point;
-    return [x * scale.value, y * scale.value];
-  };
+  const worldToCamera = useCallback(
+    (point: Position) => {
+      // 'worklet';
+      const [x, y] = point;
+      return [x * scale.value, y * scale.value];
+    },
+    [scale],
+  );
 
-  const cameraToWorld = (point: Position) => {
+  const cameraToWorld = useCallback((point: Position) => {
     'worklet';
     const [x, y] = point;
     return [x / scale.value, y / scale.value];
-  };
+  }, []);
 
   const calculateZoom = useCallback((props: CalculateZoomProps) => {
     'worklet';
@@ -148,13 +151,17 @@ export const useWorldTransform = ({
     });
   }, []);
 
-  const notifyWorldPositionChange = useCallback((_pos: Position) => {
-    onWorldPositionChange({
-      position: position.value,
-      world: cameraToWorld(position.value),
-      bbox: bbox.value,
-    });
-  }, []);
+  const notifyWorldPositionChange = useCallback(
+    (_pos: Position) => {
+      onWorldPositionChange &&
+        onWorldPositionChange({
+          position: position.value,
+          world: cameraToWorld(position.value),
+          bbox: bbox.value,
+        });
+    },
+    [onWorldPositionChange],
+  );
 
   // whenever the position changes, call the onWorldPositionChange callback
   useDerivedValue(() => {

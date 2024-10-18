@@ -2,7 +2,14 @@ import { TouchPoint } from '@components/TouchPoint';
 import { createLogger } from '@helpers/log';
 import { useWorldTransform } from '@components/WorldCanvas/useWorldTransform';
 import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react';
 import { StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -10,16 +17,19 @@ import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { Dimensions, Position } from '@types';
 import { TileContainer } from '@components/TileContainer';
 import { useContextBridge } from 'its-fine';
-import { useTileMapStoreActions } from '@model/useTileMapStore';
+import {
+  useTileMapStore,
+  useTileMapStoreActions,
+} from '@model/useTileMapStore';
 import type { WorldTouchEventCallback } from './types';
 import { WorldCanvasRef } from './types';
+import { useRenderingTrace } from '../../helpers/useRenderingTrace';
 
-export type WorldCanvasProps = {
-  children: React.ReactNode;
-  onWorldPositionChange: WorldTouchEventCallback;
-  onTouch: WorldTouchEventCallback;
-  onPinch: WorldTouchEventCallback;
-};
+export type WorldCanvasProps = React.PropsWithChildren<{
+  onWorldPositionChange?: WorldTouchEventCallback;
+  onTouch?: WorldTouchEventCallback;
+  onPinch?: WorldTouchEventCallback;
+}>;
 
 const log = createLogger('WorldCanvas');
 
@@ -36,7 +46,13 @@ export const WorldCanvas = forwardRef(
     const touchPointPos = useSharedValue<Position>([0, 0]);
     const touchPointVisible = useSharedValue(false);
 
-    const { getSelectedTile, selectTileAtPosition } = useTileMapStoreActions();
+    const {
+      getSelectedTile,
+      selectTileAtPosition,
+      startGame,
+      setViewPosition,
+      onGameTouch,
+    } = useTileMapStoreActions();
 
     const {
       bbox,
@@ -53,20 +69,35 @@ export const WorldCanvas = forwardRef(
       onWorldPositionChange,
     });
 
-    useImperativeHandle(forwardedRef, () => ({
-      getSelectedTile: () => {
-        return getSelectedTile();
-      },
+    const setZoom = useCallback(
+      (zoomFactor: number) => {
+        const onFinish = () => {
+          'worklet';
+          // log.debug('[setZoom] onFinish');
+          // runOnJS(log.debug)('[setZoom] onFinish');
+          runOnJS(setViewPosition)(position.value, scale.value);
+        };
 
-      setZoom: (zoomFactor: number) => {
         const { position: toPos, scale: toScale } = calculateZoom({
           focalPoint: [screenDimensions[0] / 2, screenDimensions[1] / 2],
           zoomFactor,
         });
+        log.debug('[setZoom] toPos', toPos);
         position.value = withTiming(toPos, { duration: 300 });
-        scale.value = withTiming(toScale, { duration: 300 });
+        scale.value = withTiming(toScale, { duration: 300 }, onFinish);
       },
-      moveToPosition: (worldPosition: Position, targetScale?: number) => {
+      [screenDimensions],
+    );
+
+    const moveToPosition = useCallback(
+      (worldPosition: Position, targetScale?: number) => {
+        const onFinish = () => {
+          'worklet';
+          // log.debug('[setZoom] onFinish');
+          // runOnJS(log.debug)('[setZoom] onFinish');
+          runOnJS(setViewPosition)(position.value, scale.value);
+        };
+
         if (targetScale !== undefined) {
           scale.value = withTiming(targetScale, { duration: 300 });
         }
@@ -77,10 +108,41 @@ export const WorldCanvas = forwardRef(
           worldToCamera(worldPosition),
         );
 
-        position.value = withTiming(worldToCamera(worldPosition), {
-          duration: 300,
-        });
+        position.value = withTiming(
+          worldToCamera(worldPosition),
+          {
+            duration: 300,
+          },
+          onFinish,
+        );
       },
+      [],
+    );
+
+    const [stateViewPosition, stateViewScale, stateViewMovePosition] =
+      useTileMapStore((state) => [
+        state.viewPosition,
+        state.viewScale,
+        state.viewMovePosition,
+      ]);
+
+    useEffect(() => {
+      moveToPosition(stateViewMovePosition, stateViewScale);
+      // position.value = withTiming(stateViewMovePosition, { duration: 300 });
+      // scale.value = withTiming(stateViewMoveScale, { duration: 300 });
+    }, [stateViewMovePosition]);
+
+    useEffect(() => {
+      position.value = stateViewPosition;
+      scale.value = stateViewScale;
+    }, [stateViewPosition, stateViewScale]);
+
+    useImperativeHandle(forwardedRef, () => ({
+      getSelectedTile: () => {
+        return getSelectedTile();
+      },
+      setZoom,
+      moveToPosition,
       setPosition: (worldPosition: Position) => {
         position.value = worldPosition;
       },
@@ -88,61 +150,113 @@ export const WorldCanvas = forwardRef(
         selectTileAtPosition(worldPosition);
         return getSelectedTile();
       },
+
+      startGame: () => {
+        // setViewPosition([0, 0], 1);
+        startGame();
+      },
     }));
 
-    const panGesture = Gesture.Pan().onChange((event) => {
-      'worklet';
-      // runOnJS(log.debug)('[panGesture] change');
-      const [x, y] = position.value;
-      position.value = [x - event.changeX, y - event.changeY];
-    });
+    const panGesture = useMemo(
+      () =>
+        Gesture.Pan().onChange((event) => {
+          'worklet';
+          // runOnJS(log.debug)('[panGesture] change');
+          const [x, y] = position.value;
+          position.value = [x - event.changeX, y - event.changeY];
+        }),
+      [],
+    );
 
-    const tapGesture = Gesture.Tap()
-      .onStart((event) => {
-        'worklet';
-        runOnJS(log.debug)('[tapGesture] start');
-      })
-      .onEnd((event) => {
-        'worklet';
-        runOnJS(log.debug)('[tapGesture] end');
-        const worldPos = screenToWorld([event.x, event.y]);
+    const tapGesture = useMemo(
+      () =>
+        Gesture.Tap()
+          .onStart((event) => {
+            'worklet';
+            runOnJS(log.debug)('[tapGesture] start');
+          })
+          .onEnd((event) => {
+            'worklet';
+            runOnJS(log.debug)('[tapGesture] end');
+            const worldPos = screenToWorld([event.x, event.y]);
 
-        touchPointPos.value = worldPos;
-        touchPointVisible.value = true;
+            touchPointPos.value = worldPos;
+            touchPointVisible.value = true;
 
-        runOnJS(onTouch)({
-          position: [event.x, event.y],
-          world: worldPos,
-          bbox: bbox.value,
-        });
-      });
+            onTouch &&
+              runOnJS(onTouch)({
+                position: [event.x, event.y],
+                world: worldPos,
+                bbox: bbox.value,
+              });
 
-    const pinchGesture = Gesture.Pinch()
-      .onUpdate((event) => {
-        'worklet';
-        const { position: toPos, scale: toScale } = calculateZoom({
-          focalPoint: [event.focalX, event.focalY],
-          zoomFactor: event.scale,
-        });
-        position.value = withTiming(toPos, { duration: 300 });
-        scale.value = withTiming(toScale, { duration: 300 });
-      })
-      .onEnd((event) => {
-        'worklet';
-        // runOnJS(updateWorldPosition)(position.value);
-        const focalPosition = [event.focalX, event.focalY];
+            runOnJS(onGameTouch)(worldPos);
+          }),
+      [],
+    );
 
-        runOnJS(onPinch)({
-          position: focalPosition,
-          world: position.value,
-          bbox: bbox.value,
-        });
-      });
+    const pinchGesture = useMemo(
+      () =>
+        Gesture.Pinch()
+          .onUpdate((event) => {
+            'worklet';
+            const { position: toPos, scale: toScale } = calculateZoom({
+              focalPoint: [event.focalX, event.focalY],
+              zoomFactor: event.scale,
+            });
+            position.value = withTiming(toPos, { duration: 300 });
+            scale.value = withTiming(toScale, { duration: 300 });
+          })
+          .onEnd((event) => {
+            'worklet';
+            // runOnJS(updateWorldPosition)(position.value);
+            const focalPosition = [event.focalX, event.focalY];
+
+            onPinch &&
+              runOnJS(onPinch)({
+                position: focalPosition,
+                world: position.value,
+                bbox: bbox.value,
+              });
+          }),
+      [],
+    );
 
     // Combine the existing gestures with the new pinch gesture
-    const gesture = Gesture.Simultaneous(tapGesture, panGesture, pinchGesture);
+    const gesture = useMemo(
+      () => Gesture.Simultaneous(tapGesture, panGesture, pinchGesture),
+      [tapGesture, panGesture, pinchGesture],
+    );
 
     const isLayoutValid = screenDimensions[0] > 0 && screenDimensions[1] > 0;
+
+    useRenderingTrace('WorldCanvas', {
+      position,
+      scale,
+      matrix,
+      screenDimensions,
+      bbox,
+      isLayoutValid,
+      gesture,
+      tapGesture,
+      panGesture,
+      pinchGesture,
+      getSelectedTile,
+      selectTileAtPosition,
+      startGame,
+      setViewPosition,
+      children,
+      onWorldPositionChange,
+      onTouch,
+      onPinch,
+      screenToWorld,
+      calculateZoom,
+      worldToCamera,
+      ContextBridge,
+      canvasRef,
+    });
+
+    log.debug('render');
 
     // the use of ContextBridge is because Canvas runs in a different fiber
     // and doesn't receive context as a result
@@ -161,14 +275,16 @@ export const WorldCanvas = forwardRef(
           <ContextBridge>
             {isLayoutValid && (
               <TileContainer
+                position={position}
+                scale={scale}
                 bbox={bbox}
                 matrix={matrix}
                 screenDimensions={screenDimensions}
               >
-                <TouchPoint
+                {/* <TouchPoint
                   pos={touchPointPos.value}
                   isVisible={touchPointVisible}
-                />
+                /> */}
               </TileContainer>
             )}
 

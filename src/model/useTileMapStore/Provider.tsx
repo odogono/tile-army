@@ -31,6 +31,10 @@ export const TileMapStoreProvider = ({
     if (importStateProp) {
       importStateToStore(storeRef.current, importStateProp);
     }
+
+    // storeRef.current.subscribe((state) => {
+    //   log.debug('[storeRef.current]', state);
+    // });
   }
 
   return (

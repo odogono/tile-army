@@ -1,6 +1,8 @@
 import { createStore } from 'zustand';
 import { createLogger } from '@helpers/log';
+import { createGameSlice, GameSlice, GameSliceProps } from './gameSlice';
 import { createTileSlice, TileSlice, TileSliceProps } from './tileSlice';
+import { createViewSlice, ViewSlice, ViewSliceProps } from './viewSlice';
 import { createTile } from '../Tile';
 
 // eslint-disable-next-line no-console
@@ -8,9 +10,11 @@ const log = createLogger('TileMapStore');
 
 // https://github.com/pmndrs/zustand/blob/main/docs/guides/typescript.md#slices-pattern
 
-export type TileMapState = TileSlice;
+export type TileMapState = TileSlice & GameSlice & ViewSlice;
 
-export type TileMapStoreProps = TileSliceProps;
+export type TileMapStoreProps = TileSliceProps &
+  GameSliceProps &
+  ViewSliceProps;
 
 export type TileMapStore = ReturnType<typeof createTileMapStore>;
 
@@ -18,13 +22,17 @@ export const createTileMapStore = (
   initialState: Partial<TileMapStoreProps>,
 ) => {
   // this creates a vanilla store, since it is destined to be used with a context
-  return createStore<TileSlice>()(
+  return createStore<TileMapState>()(
     // persist(
 
     (...args) => ({
       // ...defaultState,
 
       ...createTileSlice(...args),
+
+      ...createGameSlice(...args),
+
+      ...createViewSlice(...args),
 
       ...initialState,
     }),

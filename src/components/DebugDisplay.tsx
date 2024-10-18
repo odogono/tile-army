@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { BBox, Position } from '@types';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { bboxToString, getBBoxCenter } from '@helpers/geo';
 
 const positionToString = ([x, y]: Position) =>
@@ -36,14 +36,11 @@ export const useDebugDisplay = () => {
         <Text style={styles.positionText}>BBox {bboxString}</Text>
       </View>
     );
-  }, [bboxString, tapPosition, worldPosition, worldTapPosition]);
+  }, []);
+  // }, [bboxString, tapPosition, worldPosition, worldTapPosition]);
 
   return {
     DebugDisplay,
-    bboxString,
-    worldPosition,
-    tapPosition,
-    worldTapPosition,
     updateWorldPosition,
     updateTapPosition,
     updateWorldTapPosition,

@@ -1,4 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { createLogger } from './log';
+
+const log = createLogger('');
 
 /**
  * Helps tracking the props changes made in a react functional component.
@@ -42,7 +45,16 @@ export const useRenderingTrace = (
       );
 
     if (Object.keys(changedProps).length > 0) {
+      // const table = [];
+      // for (const [key, value] of Object.entries(changedProps)) {
+      //   table.push({ key, new: value.new, old: value.old });
+      //   // table.push(`${key}: ${value.old} -> ${value.new}`);
+      // }
+
       // eslint-disable-next-line no-console
+      // log[level](`[${componentName}] Changed props:`);
+      // console.table(table);
+      // console.log('poop', table);
       console[level](`[${componentName}] Changed props:`, changedProps);
     }
 

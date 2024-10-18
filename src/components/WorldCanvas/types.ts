@@ -7,6 +7,7 @@ export type WorldCanvasRef = {
   getSelectedTile: () => Tile | undefined;
   selectTileAtPosition: (worldPosition: Position) => Tile | undefined;
   moveToPosition: (worldPosition: Position, targetScale?: number) => void;
+  startGame: () => void;
 };
 
 export type WorldTouchEvent = {
