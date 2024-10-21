@@ -1,4 +1,4 @@
-import { BBox, Position } from '@types';
+import { Position } from '@types';
 import { Tile } from '@model/Tile';
 
 export type WorldCanvasRef = {
@@ -9,11 +9,3 @@ export type WorldCanvasRef = {
   moveToPosition: (worldPosition: Position, targetScale?: number) => void;
   startGame: () => void;
 };
-
-export type WorldTouchEvent = {
-  position: Position;
-  world: Position;
-  bbox: BBox;
-};
-
-export type WorldTouchEventCallback = (event: WorldTouchEvent) => void;

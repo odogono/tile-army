@@ -1,13 +1,13 @@
 import { act, renderHook } from '@testing-library/react-native';
 import {
-  useWorldTransform,
-  UseWorldTransformProps,
-} from '../useWorldTransform';
+  useTileMapStoreView,
+  UseTileMapStoreViewProps,
+} from '../useTileMapStoreView';
 
 const onWorldPositionChange = jest.fn();
 
-describe('useWorldTransform', () => {
-  const defaultProps: UseWorldTransformProps = {
+describe('useTileMapStoreView', () => {
+  const defaultProps: UseTileMapStoreViewProps = {
     screenWidth: 400,
     screenHeight: 800,
     scale: 1,
@@ -15,14 +15,14 @@ describe('useWorldTransform', () => {
   };
 
   it('should initialize with default values', () => {
-    const { result } = renderHook(() => useWorldTransform(defaultProps));
+    const { result } = renderHook(() => useTileMapStoreView(defaultProps));
 
     expect(result.current.scale.value).toBe(1);
     expect(result.current.position.value).toEqual([0, 0]);
   });
 
   it.skip('should update matrix when scale changes', () => {
-    const { result } = renderHook(() => useWorldTransform(defaultProps));
+    const { result } = renderHook(() => useTileMapStoreView(defaultProps));
 
     act(() => {
       result.current.scale.value = 2;
@@ -35,7 +35,7 @@ describe('useWorldTransform', () => {
   });
 
   it('should update matrix when translation changes', () => {
-    const { result } = renderHook(() => useWorldTransform(defaultProps));
+    const { result } = renderHook(() => useTileMapStoreView(defaultProps));
 
     act(() => {
       result.current.position.value = [100, 50];
@@ -47,7 +47,7 @@ describe('useWorldTransform', () => {
   });
 
   it.skip('should correctly transform screen coordinates to world coordinates', () => {
-    const { result } = renderHook(() => useWorldTransform(defaultProps));
+    const { result } = renderHook(() => useTileMapStoreView(defaultProps));
 
     act(() => {
       result.current.scale.value = 2;
@@ -63,7 +63,7 @@ describe('useWorldTransform', () => {
   });
 
   it('should handle edge cases for screen to world transformation', () => {
-    const { result } = renderHook(() => useWorldTransform(defaultProps));
+    const { result } = renderHook(() => useTileMapStoreView(defaultProps));
 
     const topLeft = result.current.screenToWorld([0, 0]);
     const bottomRight = result.current.screenToWorld([400, 800]);

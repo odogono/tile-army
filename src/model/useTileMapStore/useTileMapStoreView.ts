@@ -1,46 +1,53 @@
 import { Skia } from '@shopify/react-native-skia';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import {
   clamp,
   runOnJS,
   useDerivedValue,
-  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
-import type { BBox, Position } from 'geojson';
-import { WorldTouchEventCallback } from './types';
+import type { BBox, Position } from '@types';
+import { useTileMapStore } from './useTileMapStore';
 
-export type UseWorldTransformProps = {
+export type WorldTouchEvent = {
+  position: Position;
+  world: Position;
+  bbox: BBox;
+};
+
+export type WorldTouchEventCallback = (event: WorldTouchEvent) => void;
+
+export type UseTileMapStoreViewProps = {
   screenWidth: number;
   screenHeight: number;
   scale: number;
   onWorldPositionChange?: WorldTouchEventCallback;
 };
 
-export const useWorldTransform = ({
+export const useTileMapStoreView = ({
   screenWidth,
   screenHeight,
-  scale: initialScale = 1,
   onWorldPositionChange,
-}: UseWorldTransformProps) => {
-  const scale = useSharedValue(initialScale);
-
-  // position of the camera in screen coordinates
-  const position = useSharedValue<Position>([0, 0]);
+}: UseTileMapStoreViewProps) => {
+  const [mViewPosition, mViewScale] = useTileMapStore((state) => [
+    state.mViewPosition,
+    state.mViewScale,
+  ]);
 
   const bbox = useDerivedValue<BBox>(() => {
-    const [x, y] = position.value;
-    const [sx, sy] = [x / scale.value, y / scale.value];
-    const width = screenWidth / scale.value;
-    const height = screenHeight / scale.value;
+    const [x, y] = mViewPosition.value;
+    const [sx, sy] = [x / mViewScale.value, y / mViewScale.value];
+    const width = screenWidth / mViewScale.value;
+    const height = screenHeight / mViewScale.value;
     const hWidth = width / 2;
     const hHeight = height / 2;
 
     // sw point, then ne point
     return [sx - hWidth, sy + hHeight, sx + hWidth, sy - hHeight];
-  }, [position, screenWidth, screenHeight]);
+  });
 
   const matrix = useDerivedValue(() => {
-    const [x, y] = position.value;
+    const [x, y] = mViewPosition.value;
     const m = Skia.Matrix();
 
     // Translate to the center of the screen
@@ -48,23 +55,23 @@ export const useWorldTransform = ({
 
     // Apply scale around the current position
     m.translate(-x, -y);
-    m.scale(scale.value, scale.value);
+    m.scale(mViewScale.value, mViewScale.value);
 
     return m;
-  }, [scale, screenWidth, screenHeight, position]);
+  });
 
   const inverseMatrix = useDerivedValue(() => {
-    const [x, y] = position.value;
+    const [x, y] = mViewPosition.value;
     const m = Skia.Matrix();
 
     // Invert the operations in reverse order
-    m.scale(1 / scale.value, 1 / scale.value);
+    m.scale(1 / mViewScale.value, 1 / mViewScale.value);
     m.translate(x, y);
 
     m.translate(-screenWidth / 2, -screenHeight / 2);
 
     return m;
-  }, [scale, screenWidth, screenHeight, position]);
+  });
 
   const worldToScreen = useCallback(
     (point: Position): Position => {
@@ -128,15 +135,15 @@ export const useWorldTransform = ({
     (point: Position) => {
       // 'worklet';
       const [x, y] = point;
-      return [x * scale.value, y * scale.value];
+      return [x * mViewScale.value, y * mViewScale.value];
     },
-    [scale],
+    [mViewScale],
   );
 
   const cameraToWorld = useCallback((point: Position) => {
     'worklet';
     const [x, y] = point;
-    return [x / scale.value, y / scale.value];
+    return [x / mViewScale.value, y / mViewScale.value];
   }, []);
 
   const calculateZoom = useCallback((props: CalculateZoomProps) => {
@@ -146,19 +153,39 @@ export const useWorldTransform = ({
     return calculateZoomInternal({
       ...props,
       worldFocalPoint,
-      scale: scale.value,
-      position: position.value,
+      scale: mViewScale.value,
+      position: mViewPosition.value,
     });
   }, []);
 
+  const zoomOnPoint = useCallback(
+    (focalPoint: Position, zoomFactor: number) => {
+      // const onFinish = () => {
+      //   'worklet';
+      //   // log.debug('[setZoom] onFinish');
+      //   // runOnJS(log.debug)('[setZoom] onFinish');
+      //   runOnJS(setViewPosition)(position.value, scale.value);
+      // };
+
+      const { position: toPos, scale: toScale } = calculateZoom({
+        focalPoint,
+        // focalPoint: [screenWidth / 2, screenHeight / 2],
+        zoomFactor,
+      });
+      // log.debug('[setZoom] toPos', toPos);
+      mViewPosition.value = withTiming(toPos, { duration: 300 });
+      mViewScale.value = withTiming(toScale, { duration: 300 });
+    },
+    [screenWidth, screenHeight],
+  );
+
   const notifyWorldPositionChange = useCallback(
     (_pos: Position) => {
-      onWorldPositionChange &&
-        onWorldPositionChange({
-          position: position.value,
-          world: cameraToWorld(position.value),
-          bbox: bbox.value,
-        });
+      onWorldPositionChange?.({
+        position: mViewPosition.value,
+        world: cameraToWorld(mViewPosition.value),
+        bbox: bbox.value,
+      });
     },
     [onWorldPositionChange],
   );
@@ -167,19 +194,19 @@ export const useWorldTransform = ({
   useDerivedValue(() => {
     // important that the position.value is referenced, otherwise
     // the callback will not be called
-    runOnJS(notifyWorldPositionChange)(position.value);
+    runOnJS(notifyWorldPositionChange)(mViewPosition.value);
   });
 
   return {
     bbox,
     matrix,
     inverseMatrix,
-    scale,
-    position,
+    scale: mViewScale,
+    position: mViewPosition,
     screenToWorld,
     worldToCamera,
     cameraToWorld,
-    calculateZoom,
+    zoomOnPoint,
   };
 };
 

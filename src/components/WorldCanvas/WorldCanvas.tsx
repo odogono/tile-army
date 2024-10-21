@@ -1,6 +1,4 @@
-import { TouchPoint } from '@components/TouchPoint';
 import { createLogger } from '@helpers/log';
-import { useWorldTransform } from '@components/WorldCanvas/useWorldTransform';
 import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
 import React, {
   forwardRef,
@@ -12,16 +10,16 @@ import React, {
 } from 'react';
 import { StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
 
 import type { Dimensions, Position } from '@types';
 import { TileContainer } from '@components/TileContainer';
 import { useContextBridge } from 'its-fine';
 import {
-  useTileMapStore,
   useTileMapStoreActions,
+  useTileMapStoreView,
+  WorldTouchEventCallback,
 } from '@model/useTileMapStore';
-import type { WorldTouchEventCallback } from './types';
 import { WorldCanvasRef } from './types';
 import { useRenderingTrace } from '../../helpers/useRenderingTrace';
 
@@ -50,98 +48,28 @@ export const WorldCanvas = forwardRef(
       getSelectedTile,
       selectTileAtPosition,
       startGame,
-      setViewPosition,
+      moveToPosition,
       onGameTouch,
     } = useTileMapStoreActions();
 
-    const {
-      bbox,
-      position,
-      scale,
-      matrix,
-      screenToWorld,
-      calculateZoom,
-      worldToCamera,
-    } = useWorldTransform({
-      screenWidth: screenDimensions[0],
-      screenHeight: screenDimensions[1],
-      scale: 1,
-      onWorldPositionChange,
-    });
-
-    const setZoom = useCallback(
-      (zoomFactor: number) => {
-        const onFinish = () => {
-          'worklet';
-          // log.debug('[setZoom] onFinish');
-          // runOnJS(log.debug)('[setZoom] onFinish');
-          runOnJS(setViewPosition)(position.value, scale.value);
-        };
-
-        const { position: toPos, scale: toScale } = calculateZoom({
-          focalPoint: [screenDimensions[0] / 2, screenDimensions[1] / 2],
-          zoomFactor,
-        });
-        log.debug('[setZoom] toPos', toPos);
-        position.value = withTiming(toPos, { duration: 300 });
-        scale.value = withTiming(toScale, { duration: 300 }, onFinish);
-      },
-      [screenDimensions],
-    );
-
-    const moveToPosition = useCallback(
-      (worldPosition: Position, targetScale?: number) => {
-        const onFinish = () => {
-          'worklet';
-          // log.debug('[setZoom] onFinish');
-          // runOnJS(log.debug)('[setZoom] onFinish');
-          runOnJS(setViewPosition)(position.value, scale.value);
-        };
-
-        if (targetScale !== undefined) {
-          scale.value = withTiming(targetScale, { duration: 300 });
-        }
-
-        log.debug(
-          '[moveToPosition] worldPosition',
-          worldPosition,
-          worldToCamera(worldPosition),
-        );
-
-        position.value = withTiming(
-          worldToCamera(worldPosition),
-          {
-            duration: 300,
-          },
-          onFinish,
-        );
-      },
-      [],
-    );
-
-    const [stateViewPosition, stateViewScale, stateViewMovePosition] =
-      useTileMapStore((state) => [
-        state.viewPosition,
-        state.viewScale,
-        state.viewMovePosition,
-      ]);
-
-    useEffect(() => {
-      moveToPosition(stateViewMovePosition, stateViewScale);
-      // position.value = withTiming(stateViewMovePosition, { duration: 300 });
-      // scale.value = withTiming(stateViewMoveScale, { duration: 300 });
-    }, [stateViewMovePosition]);
-
-    useEffect(() => {
-      position.value = stateViewPosition;
-      scale.value = stateViewScale;
-    }, [stateViewPosition, stateViewScale]);
+    const { bbox, position, scale, matrix, screenToWorld, zoomOnPoint } =
+      useTileMapStoreView({
+        screenWidth: screenDimensions[0],
+        screenHeight: screenDimensions[1],
+        scale: 1,
+        onWorldPositionChange,
+      });
 
     useImperativeHandle(forwardedRef, () => ({
       getSelectedTile: () => {
         return getSelectedTile();
       },
-      setZoom,
+      setZoom: (zoomFactor: number) => {
+        zoomOnPoint(
+          [screenDimensions[0] / 2, screenDimensions[1] / 2],
+          zoomFactor,
+        );
+      },
       moveToPosition,
       setPosition: (worldPosition: Position) => {
         position.value = worldPosition;
@@ -200,25 +128,10 @@ export const WorldCanvas = forwardRef(
         Gesture.Pinch()
           .onUpdate((event) => {
             'worklet';
-            const { position: toPos, scale: toScale } = calculateZoom({
-              focalPoint: [event.focalX, event.focalY],
-              zoomFactor: event.scale,
-            });
-            position.value = withTiming(toPos, { duration: 300 });
-            scale.value = withTiming(toScale, { duration: 300 });
-          })
-          .onEnd((event) => {
-            'worklet';
-            // runOnJS(updateWorldPosition)(position.value);
-            const focalPosition = [event.focalX, event.focalY];
 
-            onPinch &&
-              runOnJS(onPinch)({
-                position: focalPosition,
-                world: position.value,
-                bbox: bbox.value,
-              });
-          }),
+            zoomOnPoint([event.focalX, event.focalY], event.scale);
+          })
+          .onEnd((event) => {}),
       [],
     );
 
@@ -230,31 +143,31 @@ export const WorldCanvas = forwardRef(
 
     const isLayoutValid = screenDimensions[0] > 0 && screenDimensions[1] > 0;
 
-    useRenderingTrace('WorldCanvas', {
-      position,
-      scale,
-      matrix,
-      screenDimensions,
-      bbox,
-      isLayoutValid,
-      gesture,
-      tapGesture,
-      panGesture,
-      pinchGesture,
-      getSelectedTile,
-      selectTileAtPosition,
-      startGame,
-      setViewPosition,
-      children,
-      onWorldPositionChange,
-      onTouch,
-      onPinch,
-      screenToWorld,
-      calculateZoom,
-      worldToCamera,
-      ContextBridge,
-      canvasRef,
-    });
+    // useRenderingTrace('WorldCanvas', {
+    //   position,
+    //   scale,
+    //   matrix,
+    //   screenDimensions,
+    //   bbox,
+    //   isLayoutValid,
+    //   gesture,
+    //   tapGesture,
+    //   panGesture,
+    //   pinchGesture,
+    //   getSelectedTile,
+    //   selectTileAtPosition,
+    //   startGame,
+    //   setViewPosition,
+    //   children,
+    //   onWorldPositionChange,
+    //   onTouch,
+    //   onPinch,
+    //   screenToWorld,
+    //   zoomOnPoint,
+    //   worldToCamera,
+    //   ContextBridge,
+    //   canvasRef,
+    // });
 
     log.debug('render');
 

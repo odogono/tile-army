@@ -103,7 +103,7 @@ export const Index = () => {
             onPinch={handlePinch}
             onWorldPositionChange={handleWorldPositionChange}
           >
-            {/* <GuideLines /> */}
+            <GuideLines />
           </WorldCanvas>
 
           {/* <DebugDisplay /> */}

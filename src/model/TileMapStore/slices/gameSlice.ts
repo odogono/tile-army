@@ -47,16 +47,18 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
 
   startGame: () => {
     log.debug('[startGame]');
+    const { setViewPosition } = get() as unknown as ViewSlice;
+    const { addTiles, clearTiles } = get() as unknown as TileSlice;
 
     // move to origin
-    (get() as unknown as ViewSlice).setViewPosition([0, 0], 1);
+    setViewPosition([0, 0], 1);
 
     // clear all tiles
-    (get() as unknown as TileSlice).clearTiles();
+    clearTiles();
 
     // add a first tile
     const tile = createTile({ position: [0, 0], colour: '#FFF' });
-    (get() as unknown as TileSlice).addTiles([tile]);
+    addTiles([tile]);
 
     get().focusOnTile(tile);
 
@@ -69,6 +71,7 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
   },
 
   focusOnTile: (tile: Tile) => {
+    const { moveToPosition, worldToCamera } = get() as unknown as ViewSlice;
     (get() as unknown as TileSlice).addOptionTiles(tile, [
       Directions.west,
       Directions.south,
@@ -77,12 +80,16 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
 
     const [x, y] = tile.position;
 
-    (get() as unknown as ViewSlice).moveToPosition([x, y + 100]);
+    moveToPosition(worldToCamera([x, y + 100]));
   },
 
   onGameTouch: (position: Position) => {
     try {
-      const tile = (get() as unknown as TileSlice).getTileAtPosition(position);
+      const { moveToPosition, worldToCamera } = get() as unknown as ViewSlice;
+      const { addTiles, getTileAtPosition, removeTilesOfTypes } =
+        get() as unknown as TileSlice;
+
+      const tile = getTileAtPosition(position);
       if (!tile) {
         return;
       }
@@ -91,16 +98,19 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
 
       if (tile.type === 'option') {
         // remove all the option tiles
-        (get() as unknown as TileSlice).removeTilesOfTypes([tile.type]);
+        removeTilesOfTypes([tile.type]);
 
         // add a new normal tile
         const newTile = createTile({
           position: tile.position,
           colour: getRandomColour(),
         });
-        (get() as unknown as TileSlice).addTiles([newTile]);
+        addTiles([newTile]);
 
         get().focusOnTile(newTile);
+      } else {
+        const pos = worldToCamera(tile.position);
+        moveToPosition(pos);
       }
     } catch (err) {
       log.error('[onGameTouch] error', err);
