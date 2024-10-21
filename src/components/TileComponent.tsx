@@ -30,7 +30,12 @@ const createTilePath = (width: number, height: number, r: number) => {
   return path;
 };
 
-type TileProps = Tile & {
+type TileComponentProps = Tile & {
+  hasShadow?: boolean;
+  isAnimated?: boolean;
+};
+
+type TileProps = TileComponentProps & {
   path: SkPath;
 };
 
@@ -42,14 +47,16 @@ const OptionTile = ({ path }: TileProps) => {
   );
 };
 
-const StandardTile = ({ path, colour, isSelected }: TileProps) => {
+const StandardTile = ({ path, colour, isSelected, hasShadow }: TileProps) => {
   return (
     <>
-      <Group transform={[{ translateX: -10 }, { translateY: 10 }]}>
-        <Path path={path} color='#BBB'>
-          <Blur blur={10} />
-        </Path>
-      </Group>
+      {hasShadow && (
+        <Group transform={[{ translateX: -10 }, { translateY: 10 }]}>
+          <Path path={path} color='#BBB'>
+            <Blur blur={10} />
+          </Path>
+        </Group>
+      )}
 
       <Path path={path} color={colour}>
         {/* <LinearGradient
@@ -67,14 +74,13 @@ const StandardTile = ({ path, colour, isSelected }: TileProps) => {
   );
 };
 
-export const TileComponent = (props: Tile) => {
-  const { position, isSelected, colour, type } = props;
+export const TileComponent = (props: TileComponentProps) => {
+  const { position, isAnimated, isSelected, type } = props;
 
   const scale = useSharedValue(0);
 
   const width = 100 - 10;
   const height = 100 - 10;
-  const gR = width / 2;
 
   const path = useMemo(
     () => createTilePath(width, height, 10),
@@ -82,6 +88,9 @@ export const TileComponent = (props: Tile) => {
   );
 
   useEffect(() => {
+    if (!isAnimated) {
+      return;
+    }
     if (type === 'option') {
       scale.value = withDelay(200, withTiming(1, { duration: 500 }));
     } else {
@@ -92,8 +101,6 @@ export const TileComponent = (props: Tile) => {
   useEffect(() => {
     if (isSelected) {
       scale.value = withRepeat(withTiming(1.2, { duration: 1000 }), -1, true);
-    } else {
-      // scale.value = 1;
     }
   }, [isSelected]);
 

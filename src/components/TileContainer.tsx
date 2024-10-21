@@ -60,7 +60,12 @@ export const TileContainer = ({
   return (
     <Group matrix={matrix}>
       {visibleTiles.map((tile) => (
-        <TileComponent key={`${tile.id}-${tile.type}`} {...tile} />
+        <TileComponent
+          key={`${tile.id}-${tile.type}`}
+          {...tile}
+          isAnimated
+          hasShadow
+        />
       ))}
       {children}
     </Group>

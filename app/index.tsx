@@ -13,6 +13,7 @@ import { TileMapStoreProvider } from '@model/useTileMapStore';
 import { state } from '@model/state';
 import { useDebugDisplay } from '@components/DebugDisplay';
 import { Controls } from '@components/Controls';
+import { TileDeck } from '@components/TileDeck';
 import { useRenderingTrace } from '../src/helpers/useRenderingTrace';
 
 const screenWidth = Dimensions.get('window').width;
@@ -105,6 +106,8 @@ export const Index = () => {
           >
             <GuideLines />
           </WorldCanvas>
+
+          <TileDeck />
 
           {/* <DebugDisplay /> */}
           <Controls
