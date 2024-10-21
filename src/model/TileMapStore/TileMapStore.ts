@@ -1,8 +1,8 @@
 import { createStore } from 'zustand';
 import { createLogger } from '@helpers/log';
-import { createGameSlice, GameSlice, GameSliceProps } from './gameSlice';
-import { createTileSlice, TileSlice, TileSliceProps } from './tileSlice';
-import { createViewSlice, ViewSlice, ViewSliceProps } from './viewSlice';
+import { createGameSlice, GameSlice, GameSliceProps } from './slices/gameSlice';
+import { createTileSlice, TileSlice, TileSliceProps } from './slices/tileSlice';
+import { createViewSlice, ViewSlice, ViewSliceProps } from './slices/viewSlice';
 import { createTile } from '../Tile';
 
 // eslint-disable-next-line no-console

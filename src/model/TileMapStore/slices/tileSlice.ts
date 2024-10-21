@@ -2,9 +2,9 @@ import { StateCreator } from 'zustand';
 import type { BBox, Position } from '@types';
 import { createLogger } from '@helpers/log';
 import { pointToBBox } from '@helpers/geo';
-import { AllDirections, DirectionPositions } from './types';
-import { createTile, idFromPosition, Tile, TileType } from '../Tile';
-import { createRTree, findByBBox, TileRBush } from '../rtree';
+import { AllDirections, DirectionPositions } from '../types';
+import { createTile, idFromPosition, Tile, TileType } from '../../Tile';
+import { createRTree, findByBBox, TileRBush } from '../../rtree';
 
 const TILE_WIDTH = 100;
 const TILE_HEIGHT = 100;

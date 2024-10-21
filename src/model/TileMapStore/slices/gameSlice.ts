@@ -2,10 +2,10 @@ import { StateCreator } from 'zustand';
 import { createLogger } from '@helpers/log';
 import { Position } from '@types';
 import { TileSlice } from './tileSlice';
-import { AllDirections, Directions } from './types';
 import { ViewSlice } from './viewSlice';
-import { createTile, Tile } from '../Tile';
-import { getRandomColour } from '../state';
+import { Directions } from '../types';
+import { createTile, Tile } from '../../Tile';
+import { getRandomColour } from '../../state';
 
 export type GameSliceProps = {
   state: 'menu' | 'playing' | 'paused' | 'gameOver';

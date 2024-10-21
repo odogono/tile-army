@@ -7,7 +7,7 @@ import {
   createTileMapStore,
   TileMapState,
   TileMapStore,
-} from '../TileMapStore';
+} from '../../TileMapStore';
 
 const log = createLogger('TileMapStore.test');
 

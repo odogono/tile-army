@@ -9,6 +9,9 @@ export type ControlsProps = {
 export const Controls = ({ onZoomIn, onZoomOut, onReset }: ControlsProps) => {
   return (
     <View style={styles.zoomButtonsContainer}>
+      <TouchableOpacity style={styles.zoomButton} onPress={onReset}>
+        <Text style={styles.zoomButtonText}>x</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.zoomButton} onPress={onZoomIn}>
         <Text style={styles.zoomButtonText}>+</Text>
       </TouchableOpacity>
@@ -26,7 +29,7 @@ const styles = StyleSheet.create({
   zoomButtonsContainer: {
     position: 'absolute',
     top: 100,
-    right: 20,
+    left: 20,
     flexDirection: 'column',
     rowGap: 10,
   },
@@ -42,6 +45,7 @@ const styles = StyleSheet.create({
   zoomButtonText: {
     color: 'white',
     fontSize: 24,
+    lineHeight: 28,
     fontWeight: 'bold',
   },
 });
