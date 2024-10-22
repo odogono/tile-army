@@ -4,6 +4,7 @@ import {
   DashPathEffect,
   Group,
   Path,
+  Rect,
   Skia,
   SkPath,
 } from '@shopify/react-native-skia';
@@ -77,7 +78,7 @@ const StandardTile = ({ path, colour, isSelected, hasShadow }: TileProps) => {
 export const TileComponent = (props: TileComponentProps) => {
   const { position, isAnimated, isSelected, type } = props;
 
-  const scale = useSharedValue(0);
+  const scale = useSharedValue(isAnimated ? 0 : 1);
 
   const width = 100 - 10;
   const height = 100 - 10;

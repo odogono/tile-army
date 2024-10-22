@@ -1,7 +1,7 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "react-native", "prettier"],
+  "plugins": ["@typescript-eslint", "react-native", "prettier", "eslint-plugin-react-compiler"],
   "extends": [
     "universe",
     "universe/native",
@@ -22,6 +22,7 @@
   "rules": {
     "prettier/prettier": 1,
     "@typescript-eslint/member-ordering": "warn",
+    "react-compiler/react-compiler": "error",
     "react-native/no-unused-styles": 1,
     "react-native/no-inline-styles": 2,
     "react-native/no-raw-text": 2,
