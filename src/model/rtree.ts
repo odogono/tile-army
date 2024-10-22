@@ -28,8 +28,7 @@ export class TileRBush extends RBush<Tile> {
 }
 
 export const createRTree = (): TileRBush => {
-  const result = new TileRBush();
-  return result;
+  return new TileRBush();
 };
 
 export const findByBBox = (rtree: TileRBush, bbox: BBox) => {

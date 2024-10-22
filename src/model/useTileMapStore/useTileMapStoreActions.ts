@@ -11,6 +11,8 @@ export const useTileMapStoreActions = () => {
       setViewPosition: state.setViewPosition,
       moveToPosition: state.moveToPosition,
       onGameTouch: state.onGameTouch,
+      setViewScreenDims: state.setViewScreenDims,
+      getViewScreenDims: state.getViewScreenDims,
     }),
     shallow,
   );

@@ -20,27 +20,29 @@ import {
   useTileMapStoreView,
   WorldTouchEventCallback,
 } from '@model/useTileMapStore';
+import { useRenderingTrace } from '@helpers/useRenderingTrace';
+import { TileDeck } from '@components/TileDeck';
 import { WorldCanvasRef } from './types';
-import { useRenderingTrace } from '../../helpers/useRenderingTrace';
 
 export type WorldCanvasProps = React.PropsWithChildren<{
-  onWorldPositionChange?: WorldTouchEventCallback;
   onTouch?: WorldTouchEventCallback;
   onPinch?: WorldTouchEventCallback;
+  onReady?: () => void;
 }>;
 
 const log = createLogger('WorldCanvas');
 
 export const WorldCanvas = forwardRef(
   (
-    { children, onWorldPositionChange, onTouch, onPinch }: WorldCanvasProps,
+    { children, onTouch, onPinch, onReady }: WorldCanvasProps,
     forwardedRef: React.Ref<WorldCanvasRef>,
   ) => {
     const ContextBridge = useContextBridge();
     const canvasRef = useCanvasRef();
-    const [screenDimensions, setScreenDimensions] = useState<Dimensions>([
-      0, 0,
-    ]);
+
+    const { setViewScreenDims, getViewScreenDims } = useTileMapStoreActions();
+    const { width: viewWidth, height: viewHeight } = getViewScreenDims();
+
     const touchPointPos = useSharedValue<Position>([0, 0]);
     const touchPointVisible = useSharedValue(false);
 
@@ -52,23 +54,15 @@ export const WorldCanvas = forwardRef(
       onGameTouch,
     } = useTileMapStoreActions();
 
-    const { bbox, position, scale, matrix, screenToWorld, zoomOnPoint } =
-      useTileMapStoreView({
-        screenWidth: screenDimensions[0],
-        screenHeight: screenDimensions[1],
-        scale: 1,
-        onWorldPositionChange,
-      });
+    const { bbox, position, matrix, screenToWorld, zoomOnPoint } =
+      useTileMapStoreView();
 
     useImperativeHandle(forwardedRef, () => ({
       getSelectedTile: () => {
         return getSelectedTile();
       },
       setZoom: (zoomFactor: number) => {
-        zoomOnPoint(
-          [screenDimensions[0] / 2, screenDimensions[1] / 2],
-          zoomFactor,
-        );
+        zoomOnPoint([viewWidth / 2, viewHeight / 2], zoomFactor);
       },
       moveToPosition,
       setPosition: (worldPosition: Position) => {
@@ -98,28 +92,23 @@ export const WorldCanvas = forwardRef(
 
     const tapGesture = useMemo(
       () =>
-        Gesture.Tap()
-          .onStart((event) => {
-            'worklet';
-            runOnJS(log.debug)('[tapGesture] start');
-          })
-          .onEnd((event) => {
-            'worklet';
-            runOnJS(log.debug)('[tapGesture] end');
-            const worldPos = screenToWorld([event.x, event.y]);
+        Gesture.Tap().onEnd((event) => {
+          'worklet';
+          runOnJS(log.debug)('[tapGesture] end');
+          const worldPos = screenToWorld([event.x, event.y]);
 
-            touchPointPos.value = worldPos;
-            touchPointVisible.value = true;
+          touchPointPos.value = worldPos;
+          touchPointVisible.value = true;
 
-            onTouch &&
-              runOnJS(onTouch)({
-                position: [event.x, event.y],
-                world: worldPos,
-                bbox: bbox.value,
-              });
+          onTouch &&
+            runOnJS(onTouch)({
+              position: [event.x, event.y],
+              world: worldPos,
+              bbox: bbox.value,
+            });
 
-            runOnJS(onGameTouch)(worldPos);
-          }),
+          runOnJS(onGameTouch)(worldPos);
+        }),
       [],
     );
 
@@ -141,7 +130,7 @@ export const WorldCanvas = forwardRef(
       [tapGesture, panGesture, pinchGesture],
     );
 
-    const isLayoutValid = screenDimensions[0] > 0 && screenDimensions[1] > 0;
+    const isLayoutValid = viewWidth > 0 && viewHeight > 0;
 
     // useRenderingTrace('WorldCanvas', {
     //   position,
@@ -176,35 +165,33 @@ export const WorldCanvas = forwardRef(
     // see:
     // https://shopify.github.io/react-native-skia/docs/canvas/contexts/
     return (
-      <GestureDetector gesture={gesture}>
-        <Canvas
-          style={styles.canvas}
-          ref={canvasRef}
-          onLayout={(event) => {
-            const { width, height } = event.nativeEvent.layout;
-            setScreenDimensions([width, height]);
-          }}
-        >
-          <ContextBridge>
-            {isLayoutValid && (
-              <TileContainer
-                position={position}
-                scale={scale}
-                bbox={bbox}
-                matrix={matrix}
-                screenDimensions={screenDimensions}
-              >
-                {/* <TouchPoint
+      <>
+        <GestureDetector gesture={gesture}>
+          <Canvas
+            style={styles.canvas}
+            ref={canvasRef}
+            onLayout={(event) => {
+              const { width, height } = event.nativeEvent.layout;
+              setViewScreenDims(width, height);
+              onReady && onReady();
+            }}
+          >
+            <ContextBridge>
+              {isLayoutValid && (
+                <TileContainer position={position} bbox={bbox} matrix={matrix}>
+                  {/* <TouchPoint
                   pos={touchPointPos.value}
                   isVisible={touchPointVisible}
                 /> */}
-              </TileContainer>
-            )}
+                </TileContainer>
+              )}
 
-            {children}
-          </ContextBridge>
-        </Canvas>
-      </GestureDetector>
+              {children}
+            </ContextBridge>
+          </Canvas>
+        </GestureDetector>
+        <TileDeck />
+      </>
     );
   },
 );

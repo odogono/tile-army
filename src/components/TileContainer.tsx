@@ -11,8 +11,6 @@ export type TileContainerProps = React.PropsWithChildren<{
   bbox: SharedValue<BBox>;
   matrix: SharedValue<SkMatrix>;
   position: SharedValue<Position>;
-  scale: SharedValue<number>;
-  screenDimensions: Dimensions;
 }>;
 
 const log = createLogger('TileContainer');
@@ -21,9 +19,6 @@ export const TileContainer = ({
   bbox,
   children,
   matrix,
-  position,
-  scale,
-  screenDimensions,
 }: TileContainerProps) => {
   const { getVisibleTiles } = useTileMapStoreActions();
 

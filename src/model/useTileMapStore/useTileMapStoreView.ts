@@ -18,27 +18,30 @@ export type WorldTouchEvent = {
 export type WorldTouchEventCallback = (event: WorldTouchEvent) => void;
 
 export type UseTileMapStoreViewProps = {
-  screenWidth: number;
-  screenHeight: number;
-  scale: number;
-  onWorldPositionChange?: WorldTouchEventCallback;
+  // screenWidth: number;
+  // screenHeight: number;
+  // scale: number;
+  // onWorldPositionChange?: WorldTouchEventCallback;
 };
 
-export const useTileMapStoreView = ({
-  screenWidth,
-  screenHeight,
-  onWorldPositionChange,
-}: UseTileMapStoreViewProps) => {
-  const [mViewPosition, mViewScale] = useTileMapStore((state) => [
-    state.mViewPosition,
-    state.mViewScale,
-  ]);
+export const useTileMapStoreView = () => {
+  // useTileMapStore((state) =>
+  //   state.setViewScreenDims(screenWidth, screenHeight),
+  // );
+
+  const [mViewPosition, mViewScale, viewScreenWidth, viewScreenHeight] =
+    useTileMapStore((state) => [
+      state.mViewPosition,
+      state.mViewScale,
+      state.viewScreenWidth,
+      state.viewScreenHeight,
+    ]);
 
   const bbox = useDerivedValue<BBox>(() => {
     const [x, y] = mViewPosition.value;
     const [sx, sy] = [x / mViewScale.value, y / mViewScale.value];
-    const width = screenWidth / mViewScale.value;
-    const height = screenHeight / mViewScale.value;
+    const width = viewScreenWidth / mViewScale.value;
+    const height = viewScreenHeight / mViewScale.value;
     const hWidth = width / 2;
     const hHeight = height / 2;
 
@@ -51,7 +54,7 @@ export const useTileMapStoreView = ({
     const m = Skia.Matrix();
 
     // Translate to the center of the screen
-    m.translate(screenWidth / 2, screenHeight / 2);
+    m.translate(viewScreenWidth / 2, viewScreenHeight / 2);
 
     // Apply scale around the current position
     m.translate(-x, -y);
@@ -68,7 +71,7 @@ export const useTileMapStoreView = ({
     m.scale(1 / mViewScale.value, 1 / mViewScale.value);
     m.translate(x, y);
 
-    m.translate(-screenWidth / 2, -screenHeight / 2);
+    m.translate(-viewScreenWidth / 2, -viewScreenHeight / 2);
 
     return m;
   });
@@ -176,26 +179,26 @@ export const useTileMapStoreView = ({
       mViewPosition.value = withTiming(toPos, { duration: 300 });
       mViewScale.value = withTiming(toScale, { duration: 300 });
     },
-    [screenWidth, screenHeight],
+    [viewScreenWidth, viewScreenHeight],
   );
 
-  const notifyWorldPositionChange = useCallback(
-    (_pos: Position) => {
-      onWorldPositionChange?.({
-        position: mViewPosition.value,
-        world: cameraToWorld(mViewPosition.value),
-        bbox: bbox.value,
-      });
-    },
-    [onWorldPositionChange],
-  );
+  // const notifyWorldPositionChange = useCallback(
+  //   (_pos: Position) => {
+  //     onWorldPositionChange?.({
+  //       position: mViewPosition.value,
+  //       world: cameraToWorld(mViewPosition.value),
+  //       bbox: bbox.value,
+  //     });
+  //   },
+  //   [onWorldPositionChange],
+  // );
 
   // whenever the position changes, call the onWorldPositionChange callback
-  useDerivedValue(() => {
-    // important that the position.value is referenced, otherwise
-    // the callback will not be called
-    runOnJS(notifyWorldPositionChange)(mViewPosition.value);
-  });
+  // useDerivedValue(() => {
+  // important that the position.value is referenced, otherwise
+  // the callback will not be called
+  // runOnJS(notifyWorldPositionChange)(mViewPosition.value);
+  // });
 
   return {
     bbox,

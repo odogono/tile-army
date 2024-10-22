@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useRenderingTrace } from '@helpers/useRenderingTrace';
 import { useViewBounds } from '@hooks/useViewBounds';
+import { useDeckStore } from '@model/useTileMapStore';
 import { AltDragItem, TileData } from './types';
 import { DraggableTile } from './Draggable';
 import { TileComponent } from '../TileComponent'; // Assuming you have a Tile component
@@ -40,13 +41,7 @@ export const TileDeck: React.FC = () => {
   const listContainerBounds = useViewBounds(listContainerRef);
   const [draggedItem, setDraggedItem] = useState<TileData | null>(null);
 
-  const altDragItem: AltDragItem = {
-    position: useSharedValue([0, 0]),
-    offsetPosition: useSharedValue([0, 0]),
-    initialPosition: useSharedValue([0, 0]),
-    scale: useSharedValue(1),
-    distance: useSharedValue(0),
-  };
+  const { dragPosition, dragScale } = useDeckStore();
 
   const tileData: TileData[] = [
     { id: '1', colour: colours[0] },
@@ -59,9 +54,9 @@ export const TileDeck: React.FC = () => {
 
   const draggedItemStyle = useAnimatedStyle(() => ({
     position: 'absolute',
-    left: altDragItem.position.value[0],
-    top: altDragItem.position.value[1],
-    transform: [{ scale: altDragItem.scale.value }],
+    left: dragPosition.value[0],
+    top: dragPosition.value[1],
+    transform: [{ scale: dragScale.value }],
     zIndex: 1000,
   }));
 
@@ -85,8 +80,6 @@ export const TileDeck: React.FC = () => {
     <DraggableTile
       item={item}
       index={index}
-      containerBounds={listContainerBounds}
-      altDragItem={altDragItem}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
@@ -123,7 +116,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    backgroundColor: '#00FF0011',
   },
   listContainer: {
     position: 'absolute',

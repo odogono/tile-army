@@ -1,6 +1,7 @@
 import { createStore } from 'zustand';
 import { createLogger } from '@helpers/log';
 import { createGameSlice, GameSlice, GameSliceProps } from './slices/gameSlice';
+import { createDeckSlice, DeckSlice, DeckSliceProps } from './slices/deckSlice';
 import { createTileSlice, TileSlice, TileSliceProps } from './slices/tileSlice';
 import { createViewSlice, ViewSlice, ViewSliceProps } from './slices/viewSlice';
 import { createTile } from '../Tile';
@@ -10,11 +11,12 @@ const log = createLogger('TileMapStore');
 
 // https://github.com/pmndrs/zustand/blob/main/docs/guides/typescript.md#slices-pattern
 
-export type TileMapState = TileSlice & GameSlice & ViewSlice;
+export type TileMapState = TileSlice & GameSlice & ViewSlice & DeckSlice;
 
 export type TileMapStoreProps = TileSliceProps &
   GameSliceProps &
-  ViewSliceProps;
+  ViewSliceProps &
+  DeckSliceProps;
 
 export type TileMapStore = ReturnType<typeof createTileMapStore>;
 
@@ -33,6 +35,8 @@ export const createTileMapStore = (
       ...createGameSlice(...args),
 
       ...createViewSlice(...args),
+
+      ...createDeckSlice(...args),
 
       ...initialState,
     }),

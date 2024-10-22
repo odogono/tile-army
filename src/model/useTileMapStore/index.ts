@@ -5,3 +5,4 @@ export {
   useTileMapStoreView,
   WorldTouchEventCallback,
 } from './useTileMapStoreView';
+export { useDeckStore } from './useDeckStore';

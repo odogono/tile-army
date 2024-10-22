@@ -1,6 +1,6 @@
 import { createLogger } from '@helpers/log';
 import { Rect } from '@shopify/react-native-skia';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { FiberProvider } from 'its-fine';
 import { Dimensions, StyleSheet, View } from 'react-native';
 
@@ -13,7 +13,6 @@ import { TileMapStoreProvider } from '@model/useTileMapStore';
 import { state } from '@model/state';
 import { useDebugDisplay } from '@components/DebugDisplay';
 import { Controls } from '@components/Controls';
-import { TileDeck } from '@components/TileDeck';
 import { useRenderingTrace } from '../src/helpers/useRenderingTrace';
 
 const screenWidth = Dimensions.get('window').width;
@@ -82,10 +81,13 @@ export const Index = () => {
     log.debug('[handlePinch]', event);
   }, []);
 
-  const handleWorldPositionChange = useCallback((event: WorldTouchEvent) => {
-    // log.debug('[handleWorldPositionChange]', event);
-    // updateBBox(event.bbox);
-    // updateWorldPosition(event.world);
+  useEffect(() => {
+    // worldCanvasRef.current?.startGame();
+  }, []);
+
+  const handleOnReady = useCallback(() => {
+    log.debug('[handleOnReady]');
+    worldCanvasRef.current?.startGame();
   }, []);
 
   log.debug('render');
@@ -102,12 +104,10 @@ export const Index = () => {
             ref={worldCanvasRef}
             // onTouch={handleTouch}
             onPinch={handlePinch}
-            onWorldPositionChange={handleWorldPositionChange}
+            onReady={handleOnReady}
           >
             <GuideLines />
           </WorldCanvas>
-
-          <TileDeck />
 
           {/* <DebugDisplay /> */}
           <Controls

@@ -11,8 +11,6 @@ import { BBox, Position } from '@types';
 type Mutable<T> = ReturnType<typeof makeMutable<T>>;
 
 export type ViewSliceProps = {
-  mViewBBox: SharedValue<BBox>;
-
   mViewPosition: Mutable<Position>;
   mViewScale: Mutable<number>;
 
@@ -27,6 +25,9 @@ export type ViewSliceActions = {
 
   cameraToWorld: (position: Position) => Position;
   worldToCamera: (position: Position) => Position;
+
+  setViewScreenDims: (width: number, height: number) => void;
+  getViewScreenDims: () => { width: number; height: number };
 };
 
 export type ViewSlice = ViewSliceProps & ViewSliceActions;
@@ -34,7 +35,6 @@ export type ViewSlice = ViewSliceProps & ViewSliceActions;
 const defaultState: ViewSliceProps = {
   mViewPosition: makeMutable<Position>([0, 0]),
   mViewScale: makeMutable<number>(1),
-  mViewBBox: makeMutable<BBox>([0, 0, 0, 0]),
 
   viewScreenWidth: 0,
   viewScreenHeight: 0,
@@ -58,6 +58,18 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
     mViewScale.value = scale;
 
     // set({ viewPosition: position, viewScale: scale });
+  },
+
+  setViewScreenDims: (width: number, height: number) =>
+    set((state) => {
+      state.viewScreenWidth = width;
+      state.viewScreenHeight = height;
+      return state;
+    }),
+
+  getViewScreenDims: () => {
+    const { viewScreenWidth, viewScreenHeight } = get();
+    return { width: viewScreenWidth, height: viewScreenHeight };
   },
 
   worldToCamera: (position: Position) => {
