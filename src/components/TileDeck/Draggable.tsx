@@ -1,6 +1,6 @@
+/* eslint-disable react-compiler/react-compiler */
 /* eslint-disable react-native/no-inline-styles */
 import React from 'react';
-import { LayoutRectangle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { createLogger } from '@helpers/log';
 
@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useDeckStore } from '@model/useTileMapStore';
-import { AltDragItem, TileData } from './types';
+import { TileData } from './types';
 const log = createLogger('DraggableTile');
 
 export type DraggableTileProps = React.PropsWithChildren<{
@@ -20,8 +20,6 @@ export type DraggableTileProps = React.PropsWithChildren<{
   index: number;
   onDragStart: (index: number, item: TileData) => void;
   onDragEnd: (index: number, item: TileData) => void;
-  // onDrag: (pos: number[]) => void;
-  altDragItem: AltDragItem;
 }>;
 
 export const DraggableTile = ({
@@ -40,7 +38,7 @@ export const DraggableTile = ({
     useDeckStore();
 
   const panGesture = Gesture.Pan()
-    // .enabled(false)
+    .activateAfterLongPress(500)
     .onBegin((event) => {
       runOnJS(log.debug)('[panGesture][onBegin]', itemId);
     })
@@ -79,8 +77,7 @@ export const DraggableTile = ({
     })
     .onFinalize((event) => {
       runOnJS(log.debug)('[panGesture][onFinalize]', itemId);
-    })
-    .activateAfterLongPress(500);
+    });
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: isDragging.value ? 0 : 1,

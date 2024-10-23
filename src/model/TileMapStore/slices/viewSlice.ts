@@ -1,14 +1,7 @@
-import {
-  Easing,
-  makeMutable,
-  SharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { Easing, makeMutable, withTiming } from 'react-native-reanimated';
 import { StateCreator } from 'zustand';
 import { createLogger } from '@helpers/log';
-import { BBox, Position } from '@types';
-
-type Mutable<T> = ReturnType<typeof makeMutable<T>>;
+import { Mutable, Position } from '@types';
 
 export type ViewSliceProps = {
   mViewPosition: Mutable<Position>;

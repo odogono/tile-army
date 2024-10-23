@@ -39,11 +39,14 @@ export const createLogger = (
 
   const result: Logger = {} as Logger;
 
-  const logTime = Date.now();
+  let logTime = Date.now();
 
   for (const logType of logTypes) {
     result[logType] = (...args: any[]) => {
       const now = Date.now();
+      if (now - logTime > 10000) {
+        logTime = now;
+      }
       const delta = now - logTime;
 
       const prefix = `[${delta}]${prefixTxt}`;

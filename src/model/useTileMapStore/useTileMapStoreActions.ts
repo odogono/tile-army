@@ -1,8 +1,8 @@
 import { shallow } from 'zustand/shallow';
-import { useTileMapStore } from './useTileMapStore';
+import { useTileMapStoreState } from './useTileMapStore';
 
 export const useTileMapStoreActions = () => {
-  const result = useTileMapStore(
+  const result = useTileMapStoreState(
     (state) => ({
       getSelectedTile: state.getSelectedTile,
       selectTileAtPosition: state.selectTileAtPosition,

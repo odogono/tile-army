@@ -1,32 +1,24 @@
+/* eslint-disable react-compiler/react-compiler */
 import { useMemo } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS, SharedValue, useSharedValue } from 'react-native-reanimated';
 
-import type { BBox, Position } from '@types';
-import { WorldTouchEventCallback } from '@model/useTileMapStore';
+import type { Position, WorldTouchEventCallback } from '@types';
+import { useTileMapStore } from '@model/useTileMapStore';
 import { createLogger } from '@helpers/log';
 
 type UseGesturesProps = {
-  bbox: SharedValue<BBox>;
-  position: SharedValue<Position>;
-  screenToWorld: (point: Position) => Position;
   onTouch?: WorldTouchEventCallback;
   onGameTouch: (worldPosition: Position) => void;
-  zoomOnPoint: (focalPoint: Position, scale: number) => void;
 };
 
 const log = createLogger('useGestures');
 
-export const useGestures = ({
-  bbox,
-  position,
-  screenToWorld,
-  onTouch,
-  onGameTouch,
-  zoomOnPoint,
-}: UseGesturesProps) => {
+export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
   const touchPointPos = useSharedValue<Position>([0, 0]);
   const touchPointVisible = useSharedValue(false);
+
+  const { position, bbox, screenToWorld, zoomOnPoint } = useTileMapStore();
 
   const panGesture = useMemo(
     () =>

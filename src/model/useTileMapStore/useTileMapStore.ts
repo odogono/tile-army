@@ -6,25 +6,36 @@ import type { TileMapState } from '../TileMapStore';
 
 const log = createLogger('useTileMapStore');
 
-export const useTileMapStore = <T>(
+export const useTileMapStore = () => {
+  const context = useContext(TileMapContext);
+
+  if (!context) {
+    throw new Error('useTileMapStore not ready');
+  }
+
+  return context;
+};
+
+export const useTileMapStoreState = <T>(
   selector: (state: TileMapState) => T,
   equalityFn?: (left: T, right: T) => boolean,
 ): T => {
-  const store = useContext(TileMapContext);
-  if (!store) {
+  const context = useContext(TileMapContext);
+  if (!context) {
     throw new Error('useTileMapStore must be used within a TileMapProvider');
   }
-  return useStoreWithEqualityFn(store, selector, equalityFn);
+  return useStoreWithEqualityFn(context.store, selector, equalityFn);
 };
 
 export const useTileMapStoreSubscription = <T>(
   selector: (state: TileMapState) => T,
   callback: (state: T) => void,
 ) => {
-  const store = useContext(TileMapContext);
-  if (!store) {
+  const context = useContext(TileMapContext);
+  if (!context) {
     throw new Error('useTileMapStore must be used within a TileMapProvider');
   }
+  const { store } = context;
 
   // const useBoundStore = useStore(store, selector);
   // todo - doesn't work

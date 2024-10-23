@@ -1,30 +1,35 @@
 import { TileComponent } from '@components/TileComponent';
-import { Group, SkMatrix } from '@shopify/react-native-skia';
-import React, { useCallback, useRef, useState } from 'react';
-import { runOnJS, SharedValue, useDerivedValue } from 'react-native-reanimated';
+import { Group, mix, Rect, SkMatrix } from '@shopify/react-native-skia';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Animated, {
+  runOnJS,
+  SharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { BBox, Dimensions, Position } from '@types';
 import { createLogger } from '@helpers/log';
 import { Tile } from '@model/Tile';
-import { useTileMapStoreActions } from '@model/useTileMapStore';
+import {
+  useTileMapStore,
+  useTileMapStoreActions,
+  useTileMapStoreState,
+} from '@model/useTileMapStore';
 
-export type TileContainerProps = React.PropsWithChildren<{
-  bbox: SharedValue<BBox>;
-  matrix: SharedValue<SkMatrix>;
-  position: SharedValue<Position>;
-}>;
+export type TileContainerProps = React.PropsWithChildren<object>;
 
 const log = createLogger('TileContainer');
 
-export const TileContainer = ({
-  bbox,
-  children,
-  matrix,
-}: TileContainerProps) => {
+export const TileContainer = ({ children }: TileContainerProps) => {
+  const { bbox, matrix } = useTileMapStore();
   const { getVisibleTiles } = useTileMapStoreActions();
+  const dragCursor = useTileMapStoreState((state) => state.dragCursor);
 
   const visibleTilesRef = useRef<string>('');
   const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
-  // const tiles = store.store((state) => state.tiles);
 
   const updateVisibleTiles = useCallback(
     (bbox: BBox) => {
@@ -52,6 +57,20 @@ export const TileContainer = ({
 
   // log.debug('render', visibleTiles.length);
 
+  // const cursorStyle = useAnimatedStyle(() => ({
+  //   position: 'absolute',
+  //   left: dragCursor.value[0],
+  //   top: dragCursor.value[1],
+  // }));
+
+  const x = useDerivedValue(() => {
+    // runOnJS(log.debug)('dragCursor', dragCursor.value);
+    return dragCursor.value.x;
+  });
+  const y = useDerivedValue(() => {
+    return dragCursor.value.y;
+  });
+
   return (
     <Group matrix={matrix}>
       {visibleTiles.map((tile) => (
@@ -63,6 +82,14 @@ export const TileContainer = ({
         />
       ))}
       {children}
+      <Rect
+        x={x}
+        y={y}
+        width={dragCursor.value.width}
+        height={dragCursor.value.height}
+        color='red'
+        strokeWidth={1}
+      />
     </Group>
   );
 };

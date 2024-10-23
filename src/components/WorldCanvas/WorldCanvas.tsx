@@ -1,26 +1,17 @@
+/* eslint-disable react-compiler/react-compiler */
 import { createLogger } from '@helpers/log';
 import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
-import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useState,
-} from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { StyleSheet } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, SharedValue, useSharedValue } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 
-import type { BBox, Dimensions, Position } from '@types';
+import type { Position, WorldTouchEventCallback } from '@types';
 import { TileContainer } from '@components/TileContainer';
 import { useContextBridge } from 'its-fine';
 import {
+  useTileMapStore,
   useTileMapStoreActions,
-  useTileMapStoreView,
-  WorldTouchEventCallback,
 } from '@model/useTileMapStore';
-import { useRenderingTrace } from '@helpers/useRenderingTrace';
 import { TileDeck } from '@components/TileDeck';
 import { WorldCanvasRef } from './types';
 import { useGestures } from './useGestures';
@@ -52,16 +43,11 @@ export const WorldCanvas = forwardRef(
       onGameTouch,
     } = useTileMapStoreActions();
 
-    const { bbox, position, matrix, screenToWorld, zoomOnPoint } =
-      useTileMapStoreView();
+    const { position, zoomOnPoint } = useTileMapStore();
 
     const gesture = useGestures({
-      bbox,
-      position,
-      screenToWorld,
       onTouch,
       onGameTouch,
-      zoomOnPoint,
     });
 
     useImperativeHandle(forwardedRef, () => ({
@@ -86,6 +72,10 @@ export const WorldCanvas = forwardRef(
       },
     }));
 
+    const handleDragEnd = useCallback(() => {
+      log.debug('[handleDragEnd]');
+    }, []);
+
     const isLayoutValid = viewWidth > 0 && viewHeight > 0;
 
     log.debug('render');
@@ -108,7 +98,7 @@ export const WorldCanvas = forwardRef(
           >
             <ContextBridge>
               {isLayoutValid && (
-                <TileContainer position={position} bbox={bbox} matrix={matrix}>
+                <TileContainer>
                   {/* <TouchPoint
                   pos={touchPointPos.value}
                   isVisible={touchPointVisible}
@@ -120,7 +110,7 @@ export const WorldCanvas = forwardRef(
             </ContextBridge>
           </Canvas>
         </GestureDetector>
-        <TileDeck />
+        <TileDeck onDragEnd={handleDragEnd} />
       </>
     );
   },

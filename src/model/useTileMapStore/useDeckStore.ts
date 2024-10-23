@@ -1,9 +1,9 @@
+/* eslint-disable react-compiler/react-compiler */
 import { runOnJS, useDerivedValue } from 'react-native-reanimated';
 import { createLogger } from '@helpers/log';
 import { Position } from '@types';
-import { useTileMapStore } from './useTileMapStore';
-import { useTileMapStoreView } from './useTileMapStoreView';
-import { findByPosition } from '../rtree';
+import { useTileMapStore, useTileMapStoreState } from './useTileMapStore';
+import { findByRect } from '../rtree';
 // import { screenToWorld } from '../WorldCanvas/utils';
 
 const log = createLogger('useDeckStore');
@@ -14,25 +14,34 @@ export const useDeckStore = () => {
     dragOffsetPosition,
     dragInitialPosition,
     dragScale,
+    dragCursor,
     spatialIndex,
-  ] = useTileMapStore((state) => [
+  ] = useTileMapStoreState((state) => [
     state.dragPosition,
     state.dragOffsetPosition,
     state.dragInitialPosition,
     state.dragScale,
+    state.dragCursor,
     state.spatialIndex,
   ]);
 
-  // const { screenToWorld } = useTileMapStoreView();
+  const { screenToWorld } = useTileMapStore();
 
   const checkForTiles = (position: Position) => {
-    // runOnJS(log.debug)('[useDeckStore] spatialIndex', spatialIndex.value);
+    const adjustedPosition = [position[0] + 50, position[1] + 50];
 
-    const worldPosition = position;
+    const worldPosition = screenToWorld(adjustedPosition);
 
-    // need to convert to world coords
+    const rect = {
+      x: worldPosition[0],
+      y: worldPosition[1],
+      width: 5,
+      height: 5,
+    };
 
-    const tiles = findByPosition(spatialIndex, worldPosition);
+    dragCursor.value = rect;
+
+    const tiles = findByRect(spatialIndex, rect);
 
     if (tiles.length > 0) {
       log.debug('tiles', tiles.length);
@@ -40,15 +49,7 @@ export const useDeckStore = () => {
   };
 
   useDerivedValue(() => {
-    // runOnJS(log.debug)('[useDeckStore] dragPosition', dragPosition.value);
-
-    // const minX = dragPosition.value[0];
-    // const minY = dragPosition.value[1];
-
     runOnJS(checkForTiles)(dragPosition.value);
-    // const tiles = spatialIndex.search(rect);
-
-    // runOnJS(log.debug)('[useDeckStore] tiles', tiles);
   });
 
   return {
@@ -56,5 +57,6 @@ export const useDeckStore = () => {
     dragOffsetPosition,
     dragInitialPosition,
     dragScale,
+    dragCursor,
   };
 };

@@ -1,23 +1,17 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useRef, useState } from 'react';
-import { Dimensions, FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { colours } from '@model/state';
 import { Canvas } from '@shopify/react-native-skia';
 import { createLogger } from '@helpers/log';
 
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedStyle } from 'react-native-reanimated';
 import { useRenderingTrace } from '@helpers/useRenderingTrace';
 import { useViewBounds } from '@hooks/useViewBounds';
 import { useDeckStore } from '@model/useTileMapStore';
-import { AltDragItem, TileData } from './types';
+import { TileData } from './types';
 import { DraggableTile } from './Draggable';
 import { TileComponent } from '../TileComponent'; // Assuming you have a Tile component
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const log = createLogger('TileDeck');
 
@@ -35,7 +29,11 @@ const TileItem = ({ item }: { item: TileData }) => (
   </Canvas>
 );
 
-export const TileDeck: React.FC = () => {
+export type TileDeckProps = {
+  onDragEnd: () => void;
+};
+
+export const TileDeck: React.FC<TileDeckProps> = ({ onDragEnd }) => {
   const listRef = useRef<FlatList<TileData>>(null);
   const listContainerRef = useRef<View>(null);
   const listContainerBounds = useViewBounds(listContainerRef);
@@ -58,6 +56,7 @@ export const TileDeck: React.FC = () => {
     top: dragPosition.value[1],
     transform: [{ scale: dragScale.value }],
     zIndex: 1000,
+    opacity: 0.1,
   }));
 
   const animatedListStyle = useAnimatedStyle(() => ({
@@ -66,12 +65,12 @@ export const TileDeck: React.FC = () => {
     //   : 0,
   }));
 
-  const onDragStart = (index: number, item: TileData) => {
+  const handleDragStart = (index: number, item: TileData) => {
     runOnJS(log.debug)('[onDragStart]', index, item);
     setDraggedItem(item);
   };
 
-  const onDragEnd = (index: number, item: TileData) => {
+  const handleDragEnd = (index: number, item: TileData) => {
     runOnJS(log.debug)('[onDragEnd]', index, item);
     setDraggedItem(null);
   };
@@ -80,8 +79,8 @@ export const TileDeck: React.FC = () => {
     <DraggableTile
       item={item}
       index={index}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <TileItem item={item} />
     </DraggableTile>
