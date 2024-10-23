@@ -27,6 +27,8 @@ export const TileContainer = ({ children }: TileContainerProps) => {
   const { bbox, matrix } = useTileMapStore();
   const { getVisibleTiles } = useTileMapStoreActions();
   const dragCursor = useTileMapStoreState((state) => state.dragCursor);
+  const dragTargetTile = useTileMapStoreState((state) => state.dragTargetTile);
+  const [dragTargetId, setDragTargetId] = useState<string | undefined>();
 
   const visibleTilesRef = useRef<string>('');
   const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
@@ -34,18 +36,35 @@ export const TileContainer = ({ children }: TileContainerProps) => {
   const updateVisibleTiles = useCallback(
     (bbox: BBox) => {
       const visible = getVisibleTiles(bbox);
-      const ids = visible.map((t) => t.id).join(',');
+
+      // adjusting the ids to include the selected tile
+      // will cause the re-render to animate the tile
+      const ids = visible
+        .map((t) => {
+          return t.id === dragTargetId ? `${t.id}-selected` : t.id;
+        })
+        .join(',');
+
+      const adjustedVisible = visible.map((t) => {
+        if (t.id === dragTargetId) {
+          return { ...t, isSelected: true };
+        }
+        return t;
+      });
+
       if (ids !== visibleTilesRef.current) {
+        log.debug('[updateVisibleTiles]', ids, dragTargetId);
         visibleTilesRef.current = ids;
-        setVisibleTiles(visible);
+        setVisibleTiles(adjustedVisible);
       }
     },
-    [getVisibleTiles, visibleTiles],
+    [getVisibleTiles, visibleTiles, dragTargetId],
   );
 
   // when the bbox changes, update the visible tiles
   useDerivedValue(() => {
     runOnJS(updateVisibleTiles)(bbox.value);
+    runOnJS(setDragTargetId)(dragTargetTile.value?.id);
   });
 
   // useRenderingTrace('TileContainer', {
@@ -55,7 +74,8 @@ export const TileContainer = ({ children }: TileContainerProps) => {
   //   // stateViewPosition,
   // });
 
-  // log.debug('render', visibleTiles.length);
+  log.debug('render?', visibleTiles.length);
+  log.debug('dragTargetTile', dragTargetId);
 
   // const cursorStyle = useAnimatedStyle(() => ({
   //   position: 'absolute',
@@ -64,7 +84,6 @@ export const TileContainer = ({ children }: TileContainerProps) => {
   // }));
 
   const x = useDerivedValue(() => {
-    // runOnJS(log.debug)('dragCursor', dragCursor.value);
     return dragCursor.value.x;
   });
   const y = useDerivedValue(() => {

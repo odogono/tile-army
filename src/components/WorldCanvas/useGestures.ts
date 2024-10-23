@@ -1,7 +1,7 @@
 /* eslint-disable react-compiler/react-compiler */
 import { useMemo } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
-import { runOnJS, SharedValue, useSharedValue } from 'react-native-reanimated';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
 
 import type { Position, WorldTouchEventCallback } from '@types';
 import { useTileMapStore } from '@model/useTileMapStore';

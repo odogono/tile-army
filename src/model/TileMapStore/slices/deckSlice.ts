@@ -2,6 +2,7 @@ import { makeMutable } from 'react-native-reanimated';
 import { StateCreator } from 'zustand';
 import { createLogger } from '@helpers/log';
 import { Mutable, Position, Rect } from '@types';
+import { Tile } from '@model/Tile';
 
 export type DeckSliceProps = {
   dragPosition: Mutable<Position>;
@@ -9,6 +10,8 @@ export type DeckSliceProps = {
   dragInitialPosition: Mutable<Position>;
   dragScale: Mutable<number>;
   dragCursor: Mutable<Rect>;
+  dragTile: Mutable<Tile | undefined>;
+  dragTargetTile: Mutable<Tile | undefined>;
 };
 
 export type DeckSliceActions = object;
@@ -16,6 +19,8 @@ export type DeckSliceActions = object;
 export type DeckSlice = DeckSliceProps & DeckSliceActions;
 
 const defaultState: DeckSliceProps = {
+  dragTile: makeMutable<Tile | undefined>(undefined),
+  dragTargetTile: makeMutable<Tile | undefined>(undefined),
   dragPosition: makeMutable<Position>([0, 0]),
   dragOffsetPosition: makeMutable<Position>([0, 0]),
   dragInitialPosition: makeMutable<Position>([0, 0]),

@@ -55,7 +55,7 @@ export const useRenderingTrace = (
       // log[level](`[${componentName}] Changed props:`);
       // console.table(table);
       // console.log('poop', table);
-      console[level](`[${componentName}] Changed props:`, changedProps);
+      log[level](`[${componentName}] Changed props:`, changedProps);
     }
 
     prev.current = propsAndStates;

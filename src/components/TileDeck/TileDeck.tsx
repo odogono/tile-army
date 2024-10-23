@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { colours } from '@model/state';
 import { Canvas } from '@shopify/react-native-skia';
@@ -9,13 +9,13 @@ import Animated, { runOnJS, useAnimatedStyle } from 'react-native-reanimated';
 import { useRenderingTrace } from '@helpers/useRenderingTrace';
 import { useViewBounds } from '@hooks/useViewBounds';
 import { useDeckStore } from '@model/useTileMapStore';
-import { TileData } from './types';
+import { createTile, Tile } from '@model/Tile';
 import { DraggableTile } from './Draggable';
 import { TileComponent } from '../TileComponent'; // Assuming you have a Tile component
 
 const log = createLogger('TileDeck');
 
-const TileItem = ({ item }: { item: TileData }) => (
+const TileItem = ({ item }: { item: Tile }) => (
   <Canvas style={styles.canvas}>
     <TileComponent
       id={item.id}
@@ -30,24 +30,28 @@ const TileItem = ({ item }: { item: TileData }) => (
 );
 
 export type TileDeckProps = {
-  onDragEnd: () => void;
+  onDragOver: (tile: Tile) => void;
+  onDragEnd: (tile: Tile) => void;
 };
 
-export const TileDeck: React.FC<TileDeckProps> = ({ onDragEnd }) => {
-  const listRef = useRef<FlatList<TileData>>(null);
+export const TileDeck: React.FC<TileDeckProps> = ({
+  onDragOver,
+  onDragEnd,
+}) => {
+  const listRef = useRef<FlatList<Tile>>(null);
   const listContainerRef = useRef<View>(null);
   const listContainerBounds = useViewBounds(listContainerRef);
-  const [draggedItem, setDraggedItem] = useState<TileData | null>(null);
+  const [draggedItem, setDraggedItem] = useState<Tile | null>(null);
 
   const { dragPosition, dragScale } = useDeckStore();
 
-  const tileData: TileData[] = [
-    { id: '1', colour: colours[0] },
-    { id: '2', colour: colours[1] },
-    { id: '3', colour: colours[2] },
-    { id: '4', colour: colours[3] },
-    { id: '5', colour: colours[4] },
-    { id: '6', colour: colours[5] },
+  const tileData: Tile[] = [
+    createTile({ id: '1', colour: colours[0] }),
+    createTile({ id: '2', colour: colours[1] }),
+    createTile({ id: '3', colour: colours[2] }),
+    createTile({ id: '4', colour: colours[3] }),
+    createTile({ id: '5', colour: colours[4] }),
+    createTile({ id: '6', colour: colours[5] }),
   ];
 
   const draggedItemStyle = useAnimatedStyle(() => ({
@@ -65,17 +69,17 @@ export const TileDeck: React.FC<TileDeckProps> = ({ onDragEnd }) => {
     //   : 0,
   }));
 
-  const handleDragStart = (index: number, item: TileData) => {
-    runOnJS(log.debug)('[onDragStart]', index, item);
+  const handleDragStart = useCallback((index: number, item: Tile) => {
+    log.debug('[onDragStart]', index, item);
     setDraggedItem(item);
-  };
+  }, []);
 
-  const handleDragEnd = (index: number, item: TileData) => {
-    runOnJS(log.debug)('[onDragEnd]', index, item);
+  const handleDragEnd = useCallback((index: number, item: Tile) => {
+    log.debug('[onDragEnd]', index, item);
     setDraggedItem(null);
-  };
+  }, []);
 
-  const renderTile = ({ item, index }: { item: TileData; index: number }) => (
+  const renderTile = ({ item, index }: { item: Tile; index: number }) => (
     <DraggableTile
       item={item}
       index={index}
@@ -86,7 +90,7 @@ export const TileDeck: React.FC<TileDeckProps> = ({ onDragEnd }) => {
     </DraggableTile>
   );
 
-  useRenderingTrace('TileDeck', { listContainerBounds, draggedItem });
+  // useRenderingTrace('TileDeck', { listContainerBounds, draggedItem });
 
   return (
     <View style={styles.container} pointerEvents='box-none'>

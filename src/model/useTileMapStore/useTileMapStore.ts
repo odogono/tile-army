@@ -41,3 +41,11 @@ export const useTileMapStoreSubscription = <T>(
   // todo - doesn't work
   useEffect(() => store.subscribe(selector), [store, selector, callback]);
 };
+
+export const useTileMapViewDims = () => {
+  return useTileMapStoreState((state) => ({
+    width: state.viewWidth,
+    height: state.viewHeight,
+    setViewDims: state.setViewScreenDims,
+  }));
+};

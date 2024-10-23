@@ -1,6 +1,6 @@
 import { makeMutable } from 'react-native-reanimated';
 
-export type Position = [number, number];
+export type Position = number[]; // [number, number]
 
 export type BBox = [number, number, number, number];
 

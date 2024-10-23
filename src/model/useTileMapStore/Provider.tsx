@@ -1,13 +1,15 @@
 /* eslint-disable react-compiler/react-compiler */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { createLogger } from '@helpers/log';
 import { BBox, Position } from '@types';
-import { useDerivedValue, withTiming } from 'react-native-reanimated';
+import { runOnJS, useDerivedValue, withTiming } from 'react-native-reanimated';
 import { Skia } from '@shopify/react-native-skia';
 import {
   calculateZoom as calculateZoomInternal,
   CalculateZoomProps,
 } from '@model/helpers';
+import { useStore } from 'zustand';
+import { shallow } from 'zustand/shallow';
 import { TileMapContext } from './context';
 import {
   createTileMapStore,
@@ -15,6 +17,7 @@ import {
   type TileMapStore,
   type TileMapStoreProps,
 } from '../TileMapStore';
+
 type AdditionalProps = {
   importState: any;
 };
@@ -40,14 +43,16 @@ export const TileMapStoreProvider = ({
     }
   }
 
-  const { mViewPosition, mViewScale, viewScreenWidth, viewScreenHeight } =
-    storeRef.current.getState();
+  const { mViewPosition, mViewScale } = storeRef.current.getState();
+
+  const viewWidth = useStore(storeRef.current, (state) => state.viewWidth);
+  const viewHeight = useStore(storeRef.current, (state) => state.viewHeight);
 
   const bbox = useDerivedValue<BBox>(() => {
     const [x, y] = mViewPosition.value;
     const [sx, sy] = [x / mViewScale.value, y / mViewScale.value];
-    const width = viewScreenWidth / mViewScale.value;
-    const height = viewScreenHeight / mViewScale.value;
+    const width = viewWidth / mViewScale.value;
+    const height = viewHeight / mViewScale.value;
     const hWidth = width / 2;
     const hHeight = height / 2;
 
@@ -60,7 +65,7 @@ export const TileMapStoreProvider = ({
     const m = Skia.Matrix();
 
     // Translate to the center of the screen
-    m.translate(viewScreenWidth / 2, viewScreenHeight / 2);
+    m.translate(viewWidth / 2, viewHeight / 2);
 
     // Apply scale around the current position
     m.translate(-x, -y);
@@ -77,7 +82,7 @@ export const TileMapStoreProvider = ({
     m.scale(1 / mViewScale.value, 1 / mViewScale.value);
     m.translate(x, y);
 
-    m.translate(-viewScreenWidth / 2, -viewScreenHeight / 2);
+    m.translate(-viewWidth / 2, -viewHeight / 2);
 
     return m;
   });
@@ -137,11 +142,11 @@ export const TileMapStoreProvider = ({
       const worldX = a * x + b * y + c;
       const worldY = d * x + e * y + f;
       return [worldX, worldY];
-    });
+    }) as Position[];
   }, []);
 
   const worldToCamera = useCallback(
-    (point: Position) => {
+    (point: Position): Position => {
       // 'worklet';
       const [x, y] = point;
       return [x * mViewScale.value, y * mViewScale.value];
@@ -149,7 +154,7 @@ export const TileMapStoreProvider = ({
     [mViewScale],
   );
 
-  const cameraToWorld = useCallback((point: Position) => {
+  const cameraToWorld = useCallback((point: Position): Position => {
     'worklet';
     const [x, y] = point;
     return [x / mViewScale.value, y / mViewScale.value];
@@ -185,7 +190,7 @@ export const TileMapStoreProvider = ({
       mViewPosition.value = withTiming(toPos, { duration: 300 });
       mViewScale.value = withTiming(toScale, { duration: 300 });
     },
-    [viewScreenWidth, viewScreenHeight],
+    [],
   );
 
   // log.debug('render', !!storeRef.current);

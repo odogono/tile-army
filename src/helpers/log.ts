@@ -55,11 +55,11 @@ export const createLogger = (
         if (logType === 'assert') {
           const assertion = args[0];
           const rest = args.slice(1);
-          console.assert(assertion, [prefix, prefixTxt, ...rest].join(' '));
+          console.assert(assertion, [prefix, ...rest].join(' '));
         } else if (ignorePrefixTypes.includes(logType)) {
           console[logType](...args);
         } else {
-          console[logType](...[prefix, prefixTxt, ...args]);
+          console[logType](...[prefix, ...args]);
         }
       }
     };

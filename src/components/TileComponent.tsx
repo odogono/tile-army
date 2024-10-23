@@ -102,6 +102,8 @@ export const TileComponent = (props: TileComponentProps) => {
   useEffect(() => {
     if (isSelected) {
       scale.value = withRepeat(withTiming(1.2, { duration: 1000 }), -1, true);
+    } else {
+      scale.value = withTiming(1, { duration: 500 });
     }
   }, [isSelected]);
 

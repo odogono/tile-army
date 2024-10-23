@@ -1,7 +1,12 @@
 /* eslint-disable react-compiler/react-compiler */
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+} from 'react';
 import { createLogger } from '@helpers/log';
 import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
-import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 
@@ -11,8 +16,10 @@ import { useContextBridge } from 'its-fine';
 import {
   useTileMapStore,
   useTileMapStoreActions,
+  useTileMapViewDims,
 } from '@model/useTileMapStore';
 import { TileDeck } from '@components/TileDeck';
+import { Tile } from '@model/Tile';
 import { WorldCanvasRef } from './types';
 import { useGestures } from './useGestures';
 
@@ -32,8 +39,11 @@ export const WorldCanvas = forwardRef(
     const ContextBridge = useContextBridge();
     const canvasRef = useCanvasRef();
 
-    const { setViewScreenDims, getViewScreenDims } = useTileMapStoreActions();
-    const { width: viewWidth, height: viewHeight } = getViewScreenDims();
+    const {
+      setViewDims,
+      width: viewWidth,
+      height: viewHeight,
+    } = useTileMapViewDims();
 
     const {
       getSelectedTile,
@@ -43,7 +53,7 @@ export const WorldCanvas = forwardRef(
       onGameTouch,
     } = useTileMapStoreActions();
 
-    const { position, zoomOnPoint } = useTileMapStore();
+    const { bbox, position, zoomOnPoint } = useTileMapStore();
 
     const gesture = useGestures({
       onTouch,
@@ -72,13 +82,23 @@ export const WorldCanvas = forwardRef(
       },
     }));
 
-    const handleDragEnd = useCallback(() => {
-      log.debug('[handleDragEnd]');
+    const handleDragOver = useCallback((tile: Tile) => {
+      log.debug('[handleDragOver]', tile);
     }, []);
 
-    const isLayoutValid = viewWidth > 0 && viewHeight > 0;
+    const handleDragEnd = useCallback((tile: Tile) => {
+      log.debug('[handleDragEnd]', tile);
+    }, []);
 
-    log.debug('render');
+    // const isLayoutValid = viewWidth > 0 && viewHeight > 0;
+
+    useEffect(() => {
+      if (viewWidth > 0 && viewHeight > 0) {
+        onReady?.();
+      }
+    }, [onReady, viewWidth, viewHeight]);
+
+    log.debug('render', { viewWidth, viewHeight }, bbox.value);
 
     // the use of ContextBridge is because Canvas runs in a different fiber
     // and doesn't receive context as a result
@@ -92,25 +112,23 @@ export const WorldCanvas = forwardRef(
             ref={canvasRef}
             onLayout={(event) => {
               const { width, height } = event.nativeEvent.layout;
-              setViewScreenDims(width, height);
-              onReady && onReady();
+              log.debug('onLayout', { width, height });
+              setViewDims(width, height);
             }}
           >
             <ContextBridge>
-              {isLayoutValid && (
-                <TileContainer>
-                  {/* <TouchPoint
+              <TileContainer>
+                {/* <TouchPoint
                   pos={touchPointPos.value}
                   isVisible={touchPointVisible}
                 /> */}
-                </TileContainer>
-              )}
+              </TileContainer>
 
               {children}
             </ContextBridge>
           </Canvas>
         </GestureDetector>
-        <TileDeck onDragEnd={handleDragEnd} />
+        <TileDeck onDragOver={handleDragOver} onDragEnd={handleDragEnd} />
       </>
     );
   },

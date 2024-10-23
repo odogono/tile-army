@@ -7,8 +7,8 @@ export type ViewSliceProps = {
   mViewPosition: Mutable<Position>;
   mViewScale: Mutable<number>;
 
-  viewScreenWidth: number;
-  viewScreenHeight: number;
+  viewWidth: number;
+  viewHeight: number;
 };
 
 export type ViewSliceActions = {
@@ -20,7 +20,6 @@ export type ViewSliceActions = {
   worldToCamera: (position: Position) => Position;
 
   setViewScreenDims: (width: number, height: number) => void;
-  getViewScreenDims: () => { width: number; height: number };
 };
 
 export type ViewSlice = ViewSliceProps & ViewSliceActions;
@@ -29,8 +28,8 @@ const defaultState: ViewSliceProps = {
   mViewPosition: makeMutable<Position>([0, 0]),
   mViewScale: makeMutable<number>(1),
 
-  viewScreenWidth: 0,
-  viewScreenHeight: 0,
+  viewWidth: 0,
+  viewHeight: 0,
 };
 
 const log = createLogger('viewSlice');
@@ -54,16 +53,10 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
   },
 
   setViewScreenDims: (width: number, height: number) =>
-    set((state) => {
-      state.viewScreenWidth = width;
-      state.viewScreenHeight = height;
-      return state;
-    }),
-
-  getViewScreenDims: () => {
-    const { viewScreenWidth, viewScreenHeight } = get();
-    return { width: viewScreenWidth, height: viewScreenHeight };
-  },
+    set((state) => ({
+      viewWidth: width,
+      viewHeight: height,
+    })),
 
   worldToCamera: (position: Position) => {
     const { mViewScale } = get();

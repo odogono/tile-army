@@ -30,6 +30,6 @@ export const calculateZoom = ({
   posY = worldFocalPoint![1] - posY;
   posX = posX * scaleDiff;
   posY = posY * scaleDiff;
-  const pos = [posX, posY];
+  const pos: Position = [posX, posY];
   return { position: pos, scale: newScale };
 };

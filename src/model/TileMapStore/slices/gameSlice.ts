@@ -46,15 +46,11 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
   // },
 
   startGame: () => {
-    log.debug('[startGame]');
-    const { setViewPosition } = get() as unknown as ViewSlice;
+    const { setViewPosition, viewWidth, viewHeight } =
+      get() as unknown as ViewSlice;
     const { addTiles, clearTiles } = get() as unknown as TileSlice;
 
-    const { width: viewWidth, height: viewHeight } = (
-      get() as unknown as ViewSlice
-    ).getViewScreenDims();
-
-    log.debug('[startGame] viewScreenDims', viewWidth, viewHeight);
+    log.debug('[startGame] viewDims', viewWidth, viewHeight);
 
     // move to origin
     setViewPosition([0, 0], 1);

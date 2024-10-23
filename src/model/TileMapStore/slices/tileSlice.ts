@@ -164,7 +164,7 @@ export const createTileSlice: StateCreator<TileSlice, [], [], TileSlice> = (
       const newTiles = directions
         .map((direction) => {
           const [dx, dy] = direction;
-          const position = [
+          const position: Position = [
             originTile.position[0] + dx * tileWidth,
             originTile.position[1] + dy * tileHeight,
           ];
