@@ -39,17 +39,24 @@ export const createLogger = (
 
   const result: Logger = {} as Logger;
 
+  const logTime = Date.now();
+
   for (const logType of logTypes) {
     result[logType] = (...args: any[]) => {
+      const now = Date.now();
+      const delta = now - logTime;
+
+      const prefix = `[${delta}]${prefixTxt}`;
+
       if (!disabled.includes(logType)) {
         if (logType === 'assert') {
           const assertion = args[0];
           const rest = args.slice(1);
-          console.assert(assertion, [prefixTxt, ...rest].join(' '));
+          console.assert(assertion, [prefix, prefixTxt, ...rest].join(' '));
         } else if (ignorePrefixTypes.includes(logType)) {
           console[logType](...args);
         } else {
-          console[logType](...[prefixTxt, ...args]);
+          console[logType](...[prefix, prefixTxt, ...args]);
         }
       }
     };

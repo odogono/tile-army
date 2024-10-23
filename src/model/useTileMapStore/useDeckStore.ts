@@ -30,22 +30,17 @@ export const useDeckStore = () => {
 
     const worldPosition = position;
 
-    // const rect = {
-    //   minX,
-    //   minY,
-    //   maxX: minX + 1,
-    //   maxY: minY + 1,
-    // };
+    // need to convert to world coords
 
     const tiles = findByPosition(spatialIndex, worldPosition);
 
     if (tiles.length > 0) {
-      log.debug('[useDeckStore] tiles', tiles.length);
+      log.debug('tiles', tiles.length);
     }
   };
 
   useDerivedValue(() => {
-    runOnJS(log.debug)('[useDeckStore] dragPosition', dragPosition.value);
+    // runOnJS(log.debug)('[useDeckStore] dragPosition', dragPosition.value);
 
     // const minX = dragPosition.value[0];
     // const minY = dragPosition.value[1];

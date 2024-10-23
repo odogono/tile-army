@@ -10,9 +10,9 @@ import React, {
 } from 'react';
 import { StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { runOnJS, SharedValue, useSharedValue } from 'react-native-reanimated';
 
-import type { Dimensions, Position } from '@types';
+import type { BBox, Dimensions, Position } from '@types';
 import { TileContainer } from '@components/TileContainer';
 import { useContextBridge } from 'its-fine';
 import {
@@ -23,6 +23,7 @@ import {
 import { useRenderingTrace } from '@helpers/useRenderingTrace';
 import { TileDeck } from '@components/TileDeck';
 import { WorldCanvasRef } from './types';
+import { useGestures } from './useGestures';
 
 export type WorldCanvasProps = React.PropsWithChildren<{
   onTouch?: WorldTouchEventCallback;
@@ -43,9 +44,6 @@ export const WorldCanvas = forwardRef(
     const { setViewScreenDims, getViewScreenDims } = useTileMapStoreActions();
     const { width: viewWidth, height: viewHeight } = getViewScreenDims();
 
-    const touchPointPos = useSharedValue<Position>([0, 0]);
-    const touchPointVisible = useSharedValue(false);
-
     const {
       getSelectedTile,
       selectTileAtPosition,
@@ -56,6 +54,15 @@ export const WorldCanvas = forwardRef(
 
     const { bbox, position, matrix, screenToWorld, zoomOnPoint } =
       useTileMapStoreView();
+
+    const gesture = useGestures({
+      bbox,
+      position,
+      screenToWorld,
+      onTouch,
+      onGameTouch,
+      zoomOnPoint,
+    });
 
     useImperativeHandle(forwardedRef, () => ({
       getSelectedTile: () => {
@@ -79,84 +86,7 @@ export const WorldCanvas = forwardRef(
       },
     }));
 
-    const panGesture = useMemo(
-      () =>
-        Gesture.Pan().onChange((event) => {
-          'worklet';
-          // runOnJS(log.debug)('[panGesture] change');
-          const [x, y] = position.value;
-          position.value = [x - event.changeX, y - event.changeY];
-        }),
-      [],
-    );
-
-    const tapGesture = useMemo(
-      () =>
-        Gesture.Tap().onEnd((event) => {
-          'worklet';
-          runOnJS(log.debug)('[tapGesture] end');
-          const worldPos = screenToWorld([event.x, event.y]);
-
-          touchPointPos.value = worldPos;
-          touchPointVisible.value = true;
-
-          onTouch &&
-            runOnJS(onTouch)({
-              position: [event.x, event.y],
-              world: worldPos,
-              bbox: bbox.value,
-            });
-
-          runOnJS(onGameTouch)(worldPos);
-        }),
-      [],
-    );
-
-    const pinchGesture = useMemo(
-      () =>
-        Gesture.Pinch()
-          .onUpdate((event) => {
-            'worklet';
-
-            zoomOnPoint([event.focalX, event.focalY], event.scale);
-          })
-          .onEnd((event) => {}),
-      [],
-    );
-
-    // Combine the existing gestures with the new pinch gesture
-    const gesture = useMemo(
-      () => Gesture.Simultaneous(tapGesture, panGesture, pinchGesture),
-      [tapGesture, panGesture, pinchGesture],
-    );
-
     const isLayoutValid = viewWidth > 0 && viewHeight > 0;
-
-    // useRenderingTrace('WorldCanvas', {
-    //   position,
-    //   scale,
-    //   matrix,
-    //   screenDimensions,
-    //   bbox,
-    //   isLayoutValid,
-    //   gesture,
-    //   tapGesture,
-    //   panGesture,
-    //   pinchGesture,
-    //   getSelectedTile,
-    //   selectTileAtPosition,
-    //   startGame,
-    //   setViewPosition,
-    //   children,
-    //   onWorldPositionChange,
-    //   onTouch,
-    //   onPinch,
-    //   screenToWorld,
-    //   zoomOnPoint,
-    //   worldToCamera,
-    //   ContextBridge,
-    //   canvasRef,
-    // });
 
     log.debug('render');
 
