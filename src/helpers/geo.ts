@@ -50,3 +50,11 @@ export const getBBoxCenter = (bbox: BBox): Position => {
   const [west, south, east, north] = bbox;
   return [(west + east) / 2, (south + north) / 2];
 };
+
+export const posSub = (pos1: Position, pos2: Position): Position => {
+  return [pos1[0] - pos2[0], pos1[1] - pos2[1]];
+};
+
+export const posAdd = (pos1: Position, pos2: Position): Position => {
+  return [pos1[0] + pos2[0], pos1[1] + pos2[1]];
+};

@@ -15,6 +15,8 @@ export type GameSliceActions = {
   startGame: () => void;
   onGameTouch: (position: Position) => void;
   focusOnTile: (tile: Tile) => void;
+  gameHandleTileDragEnd: (droppedTile: Tile, targetTile?: Tile) => boolean;
+  gameHandleTileDropAllowed: (droppedTile: Tile, targetTile?: Tile) => boolean;
 };
 
 export type GameSlice = GameSliceProps & GameSliceActions;
@@ -82,7 +84,41 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
 
     const [x, y] = tile.position;
 
-    moveToPosition(worldToCamera([x, y + 100]));
+    moveToPosition(worldToCamera([x, y + 100]), 1, { after: 400 });
+  },
+
+  gameHandleTileDropAllowed: (droppedTile: Tile, targetTile?: Tile) => {
+    log.debug('[handleTileDropAllowed]', targetTile?.id, droppedTile.id);
+
+    if (targetTile?.type !== 'option') {
+      return false;
+    }
+
+    return true;
+  },
+
+  gameHandleTileDragEnd: (droppedTile: Tile, targetTile?: Tile) => {
+    const { addTiles, removeTilesOfTypes } = get() as unknown as TileSlice;
+
+    log.debug('[handleTileDragEnd]', targetTile?.id, droppedTile.id);
+
+    if (targetTile?.type !== 'option') {
+      return false;
+    }
+
+    // remove the option tile
+    removeTilesOfTypes(['option']);
+
+    // add a new normal tile
+    const newTile = createTile({
+      ...droppedTile,
+      position: targetTile.position,
+    });
+    addTiles([newTile]);
+
+    get().focusOnTile(newTile);
+
+    return true;
   },
 
   onGameTouch: (position: Position) => {

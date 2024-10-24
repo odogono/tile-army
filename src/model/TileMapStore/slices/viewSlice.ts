@@ -1,4 +1,9 @@
-import { Easing, makeMutable, withTiming } from 'react-native-reanimated';
+import {
+  Easing,
+  makeMutable,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 import { StateCreator } from 'zustand';
 import { createLogger } from '@helpers/log';
 import { Mutable, Position } from '@types';
@@ -11,10 +16,19 @@ export type ViewSliceProps = {
   viewHeight: number;
 };
 
+export type MoveToPositionOptions = {
+  duration?: number;
+  after?: number;
+};
+
 export type ViewSliceActions = {
   setViewPosition: (position: Position, scale?: number) => void;
 
-  moveToPosition: (position: Position, scale?: number) => void;
+  moveToPosition: (
+    position: Position,
+    scale?: number,
+    options?: MoveToPositionOptions,
+  ) => void;
 
   cameraToWorld: (position: Position) => Position;
   worldToCamera: (position: Position) => Position;
@@ -71,19 +85,27 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
   moveToPosition: (
     position: Position,
     scale: number = defaultState.mViewScale.value,
+    options?: MoveToPositionOptions,
   ) => {
     log.debug('[moveToPosition]', position, scale);
     const { mViewPosition, mViewScale } = get();
 
-    const duration = 300;
+    const duration = options?.duration || 300;
+    const after = options?.after || 0;
 
-    mViewPosition.value = withTiming(position, {
-      duration,
-      easing: Easing.inOut(Easing.ease),
-    });
-    mViewScale.value = withTiming(scale, {
-      duration,
-      easing: Easing.inOut(Easing.ease),
-    });
+    mViewPosition.value = withDelay(
+      after,
+      withTiming(position, {
+        duration,
+        easing: Easing.inOut(Easing.ease),
+      }),
+    );
+    mViewScale.value = withDelay(
+      after,
+      withTiming(scale, {
+        duration,
+        easing: Easing.inOut(Easing.ease),
+      }),
+    );
   },
 });

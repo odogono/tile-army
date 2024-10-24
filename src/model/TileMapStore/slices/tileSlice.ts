@@ -49,7 +49,7 @@ export type TileSliceActions = {
 
   removeTilesOfTypes: (types: TileType[]) => void;
 
-  resetSpatialIndex: (tiles: TileMap) => void;
+  resetSpatialIndex: (tiles: TileMap | Tile[]) => void;
 };
 
 export type TileSlice = TileSliceProps & TileSliceActions;
@@ -88,9 +88,12 @@ export const createTileSlice: StateCreator<TileSlice, [], [], TileSlice> = (
     set({ ...defaultState });
   },
 
-  resetSpatialIndex: (tiles: TileMap) => {
+  resetSpatialIndex: (tiles: TileMap | Tile[]) => {
     get().spatialIndex.clear();
-    get().spatialIndex.load(Array.from(tiles.values()));
+    if (!Array.isArray(tiles)) {
+      tiles = Array.from(tiles.values());
+    }
+    get().spatialIndex.load(tiles);
   },
 
   removeTilesOfTypes: (types: TileType[]) =>
@@ -99,8 +102,7 @@ export const createTileSlice: StateCreator<TileSlice, [], [], TileSlice> = (
 
       const filteredTiles = tiles.filter((tile) => !types.includes(tile.type));
 
-      const idx = get().spatialIndex;
-      filteredTiles.forEach((tile) => idx.remove(tile));
+      state.resetSpatialIndex(filteredTiles);
 
       return {
         ...state,
@@ -127,6 +129,7 @@ export const createTileSlice: StateCreator<TileSlice, [], [], TileSlice> = (
       // as the spatialIndex is private to the store
       state.resetSpatialIndex(tilesMap);
 
+      // todo - not sure we care about adjacent tiles
       for (const tile of tilesMap.values()) {
         const [tx, ty] = tile.position;
 
@@ -191,8 +194,6 @@ export const createTileSlice: StateCreator<TileSlice, [], [], TileSlice> = (
         newTilesMap.set(tile.id, tile);
       }
 
-      // state.spatialIndex.clear();
-      // state.spatialIndex.load(Array.from(newTilesMap.values()));
       state.resetSpatialIndex(newTilesMap);
 
       return { ...state, tiles: newTilesMap };

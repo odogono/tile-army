@@ -51,6 +51,8 @@ export const WorldCanvas = forwardRef(
       startGame,
       moveToPosition,
       onGameTouch,
+      gameHandleTileDropAllowed,
+      gameHandleTileDragEnd,
     } = useTileMapStoreActions();
 
     const { bbox, position, zoomOnPoint } = useTileMapStore();
@@ -82,13 +84,24 @@ export const WorldCanvas = forwardRef(
       },
     }));
 
-    const handleDragOver = useCallback((tile: Tile) => {
-      log.debug('[handleDragOver]', tile);
-    }, []);
+    const handleDragOver = useCallback(
+      (draggedTile: Tile, targetTile: Tile) => {
+        log.debug('[handleDragOver]', draggedTile.id, 'on to', targetTile.id);
 
-    const handleDragEnd = useCallback((tile: Tile) => {
-      log.debug('[handleDragEnd]', tile);
-    }, []);
+        return false;
+      },
+      [],
+    );
+
+    const handleDragEnd = useCallback(
+      (draggedTile: Tile, targetTile?: Tile) => {
+        log.debug('[handleDragEnd]', draggedTile.id, 'on to', targetTile?.id);
+
+        return gameHandleTileDragEnd(draggedTile, targetTile);
+        // return false;
+      },
+      [],
+    );
 
     // const isLayoutValid = viewWidth > 0 && viewHeight > 0;
 

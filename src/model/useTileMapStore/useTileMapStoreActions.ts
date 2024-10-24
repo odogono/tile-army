@@ -12,6 +12,7 @@ export const useTileMapStoreActions = () => {
       moveToPosition: state.moveToPosition,
       onGameTouch: state.onGameTouch,
       setViewScreenDims: state.setViewScreenDims,
+      gameHandleTileDragEnd: state.gameHandleTileDragEnd,
     }),
     shallow,
   );
