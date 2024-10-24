@@ -2,7 +2,6 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useCallback, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { colours } from '@model/state';
 import { Canvas } from '@shopify/react-native-skia';
 import { createLogger } from '@helpers/log';
 
@@ -16,12 +15,15 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { useDeckStore, useTileMapStore } from '@model/useTileMapStore';
-import { createTile, Tile } from '@model/Tile';
-import { Position } from '@types';
-import { findByRect } from '@model/rtree';
-import { posAdd, posSub } from '@helpers/geo';
+import {
+  useDeckStore,
+  useTileMapStore,
+  useTileMapStoreState,
+} from '@model/useTileMapStore';
+import { Tile } from '@model/Tile';
+import { posSub } from '@helpers/geo';
 import { DraggableTile } from './Draggable';
+import { useDragTileCheck } from './useDragTileCheck';
 import { TileComponent } from '../TileComponent';
 
 const log = createLogger('TileDeck');
@@ -53,26 +55,16 @@ export const TileDeck: React.FC<TileDeckProps> = ({
 }) => {
   const listRef = useRef<FlatList<Tile>>(null);
   const listContainerRef = useRef<View>(null);
-  const { screenToWorld, worldToScreen } = useTileMapStore();
+  const { worldToScreen } = useTileMapStore();
   const [draggedItem, setDraggedItem] = useState<Tile | null>(null);
 
-  const [tileData, setTileData] = useState([
-    createTile({ id: '1', colour: colours[0] }),
-    createTile({ id: '2', colour: colours[1] }),
-    createTile({ id: '3', colour: colours[2] }),
-    createTile({ id: '4', colour: colours[3] }),
-    createTile({ id: '5', colour: colours[4] }),
-    createTile({ id: '6', colour: colours[5] }),
-  ]);
+  const deckTiles = useTileMapStoreState((state) => state.deckTiles);
 
-  const {
-    dragPosition,
-    dragScale,
-    dragTile,
-    dragTargetTile,
-    spatialIndex,
-    dragInitialPosition,
-  } = useDeckStore('fromTileDeck');
+  const { dragPosition, dragScale, dragTile, dragTargetTile } = useDeckStore();
+
+  // listens to the drag position and checks for tiles
+  // that the draggable tile is over
+  useDragTileCheck();
 
   const draggedItemStyle = useAnimatedStyle(() => ({
     position: 'absolute',
@@ -83,16 +75,15 @@ export const TileDeck: React.FC<TileDeckProps> = ({
   }));
 
   const handleDragStart = useCallback((draggedTile: Tile) => {
-    log.debug('[onDragStart]', draggedTile);
     setDraggedItem(draggedTile);
   }, []);
 
   const handleDragEnd = useCallback((droppedTile: Tile, targetTile?: Tile) => {
     const dropSuccess = onDragEnd(droppedTile, targetTile);
 
-    log.debug('[onDragEnd]', droppedTile.id, targetTile?.id, {
-      dropSuccess,
-    });
+    // log.debug('[onDragEnd]', droppedTile.id, targetTile?.id, {
+    //   dropSuccess,
+    // });
 
     const animCb = () => {
       'worklet';
@@ -102,9 +93,7 @@ export const TileDeck: React.FC<TileDeckProps> = ({
     const duration = 200;
 
     if (dropSuccess && targetTile) {
-      setTileData((current) =>
-        current.filter((tile) => tile.id !== droppedTile.id),
-      );
+      // animate to the target tile
 
       const targetPosition = posSub(worldToScreen(targetTile.position), [
         targetTile.size / 2,
@@ -113,8 +102,11 @@ export const TileDeck: React.FC<TileDeckProps> = ({
 
       dragPosition.value = withTiming(targetPosition, { duration }, animCb);
     } else {
+      // animate back to the initial position
       dragPosition.value = withTiming(
-        dragInitialPosition.value,
+        // the initial screen position was saved
+        // on the dropped tile
+        droppedTile.position,
         { duration },
         animCb,
       );
@@ -131,51 +123,24 @@ export const TileDeck: React.FC<TileDeckProps> = ({
       const previousDragTarget = previous?.[1];
 
       if (currentDragTile && !previousDragTile) {
-        runOnJS(log.debug)('🙌 drag start', currentDragTile.id);
+        // runOnJS(log.debug)('🙌 drag start', currentDragTile.id);
         runOnJS(handleDragStart)(currentDragTile);
       } else if (currentDragTarget && !previousDragTarget) {
-        runOnJS(log.debug)('🙌 drag over', currentDragTarget.id);
+        // runOnJS(log.debug)('🙌 drag over', currentDragTarget.id);
       } else if (!currentDragTarget && previousDragTarget) {
-        runOnJS(log.debug)('🙌 drag out', previousDragTarget.id);
+        // runOnJS(log.debug)('🙌 drag out', previousDragTarget.id);
       } else if (!currentDragTile && previousDragTile) {
-        runOnJS(log.debug)(
-          '🙌 drag fin',
-          previousDragTile.id,
-          previousDragTarget?.id,
-        );
+        // runOnJS(log.debug)(
+        //   '🙌 drag fin',
+        //   previousDragTile.id,
+        //   previousDragTarget?.id,
+        // );
         dragTargetTile.value = undefined;
 
         runOnJS(handleDragEnd)(previousDragTile, previousDragTarget);
       }
     },
   );
-
-  const checkForTiles = useCallback((position: Position) => {
-    const adjustedPosition: Position = posAdd(position, [50, 50]);
-
-    const worldPosition = screenToWorld(adjustedPosition);
-
-    const cursorRect = {
-      x: worldPosition[0],
-      y: worldPosition[1],
-      width: 5,
-      height: 5,
-    };
-
-    const tiles = findByRect(spatialIndex, cursorRect);
-
-    dragTargetTile.value = tiles.length > 0 ? tiles[0] : undefined;
-  }, []);
-
-  useAnimatedReaction(
-    () => dragPosition.value,
-    (position) => {
-      if (dragTile.value) {
-        runOnJS(checkForTiles)(position);
-      }
-    },
-  );
-  // useRenderingTrace('TileDeck', { listContainerBounds, draggedItem });
 
   const renderTile = useCallback(
     ({ item, index }: { item: Tile; index: number }) => (
@@ -185,13 +150,7 @@ export const TileDeck: React.FC<TileDeckProps> = ({
         layout={LinearTransition.springify()}
         style={styles.listItem}
       >
-        <DraggableTile
-          item={item}
-          index={index}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          isHidden={draggedItem?.id === item.id}
-        >
+        <DraggableTile item={item} isHidden={draggedItem?.id === item.id}>
           <TileItem item={item} />
         </DraggableTile>
       </AnimatedListItem>
@@ -199,15 +158,13 @@ export const TileDeck: React.FC<TileDeckProps> = ({
     [handleDragStart, handleDragEnd, draggedItem],
   );
 
-  log.debug('render?', !!draggedItem);
-
   return (
     <View style={styles.container} pointerEvents='box-none'>
       <View style={styles.listContainer} ref={listContainerRef}>
         <Animated.FlatList
           itemLayoutAnimation={LinearTransition.springify()}
           ref={listRef}
-          data={tileData}
+          data={deckTiles}
           keyExtractor={(item) => item.id}
           renderItem={renderTile}
           horizontal

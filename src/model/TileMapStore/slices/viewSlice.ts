@@ -58,7 +58,6 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
     position: Position,
     scale: number = defaultState.mViewScale.value,
   ) => {
-    log.debug('[setViewPosition]', position, scale);
     const { mViewPosition, mViewScale } = get();
     mViewPosition.value = position;
     mViewScale.value = scale;
@@ -87,11 +86,11 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
     scale: number = defaultState.mViewScale.value,
     options?: MoveToPositionOptions,
   ) => {
-    log.debug('[moveToPosition]', position, scale);
+    // log.debug('[moveToPosition]', position, scale);
     const { mViewPosition, mViewScale } = get();
 
-    const duration = options?.duration || 300;
-    const after = options?.after || 0;
+    const duration = options?.duration ?? 300;
+    const after = options?.after ?? 0;
 
     mViewPosition.value = withDelay(
       after,

@@ -10,7 +10,7 @@ import { Canvas, useCanvasRef } from '@shopify/react-native-skia';
 import { StyleSheet } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 
-import type { Position, WorldTouchEventCallback } from '@types';
+import type { Position } from '@types';
 import { TileContainer } from '@components/TileContainer';
 import { useContextBridge } from 'its-fine';
 import {
@@ -24,8 +24,6 @@ import { WorldCanvasRef } from './types';
 import { useGestures } from './useGestures';
 
 export type WorldCanvasProps = React.PropsWithChildren<{
-  onTouch?: WorldTouchEventCallback;
-  onPinch?: WorldTouchEventCallback;
   onReady?: () => void;
 }>;
 
@@ -33,7 +31,7 @@ const log = createLogger('WorldCanvas');
 
 export const WorldCanvas = forwardRef(
   (
-    { children, onTouch, onPinch, onReady }: WorldCanvasProps,
+    { children, onReady }: WorldCanvasProps,
     forwardedRef: React.Ref<WorldCanvasRef>,
   ) => {
     const ContextBridge = useContextBridge();
@@ -51,14 +49,12 @@ export const WorldCanvas = forwardRef(
       startGame,
       moveToPosition,
       onGameTouch,
-      gameHandleTileDropAllowed,
       gameHandleTileDragEnd,
     } = useTileMapStoreActions();
 
-    const { bbox, position, zoomOnPoint } = useTileMapStore();
+    const { position, zoomOnPoint } = useTileMapStore();
 
     const gesture = useGestures({
-      onTouch,
       onGameTouch,
     });
 
@@ -103,15 +99,11 @@ export const WorldCanvas = forwardRef(
       [],
     );
 
-    // const isLayoutValid = viewWidth > 0 && viewHeight > 0;
-
     useEffect(() => {
       if (viewWidth > 0 && viewHeight > 0) {
         onReady?.();
       }
     }, [onReady, viewWidth, viewHeight]);
-
-    log.debug('render', { viewWidth, viewHeight }, bbox.value);
 
     // the use of ContextBridge is because Canvas runs in a different fiber
     // and doesn't receive context as a result
@@ -125,7 +117,6 @@ export const WorldCanvas = forwardRef(
             ref={canvasRef}
             onLayout={(event) => {
               const { width, height } = event.nativeEvent.layout;
-              log.debug('onLayout', { width, height });
               setViewDims(width, height);
             }}
           >

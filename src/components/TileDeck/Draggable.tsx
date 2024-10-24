@@ -2,64 +2,43 @@
 /* eslint-disable react-native/no-inline-styles */
 import React from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { createLogger } from '@helpers/log';
 
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue, withSpring } from 'react-native-reanimated';
 import { useDeckStore } from '@model/useTileMapStore';
 import { Tile } from '@model/Tile';
-
-const log = createLogger('DraggableTile');
+import { Position } from '@types';
 
 export type DraggableTileProps = React.PropsWithChildren<{
   item: Tile;
-  index: number;
-  onDragStart: (draggedTile: Tile) => void;
-  onDragEnd: (droppedTile: Tile) => void;
   isHidden?: boolean;
 }>;
 
 export const DraggableTile = ({
   item,
-  index,
-  onDragStart,
-  onDragEnd,
   children,
   isHidden = false,
 }: DraggableTileProps) => {
-  const {
-    dragTile,
-    dragPosition,
-    dragInitialPosition,
-    dragOffsetPosition,
-    dragScale,
-  } = useDeckStore('fromDraggableTile');
+  // stores the relative position of the drag tile
+  const offset = useSharedValue<Position>([0, 0]);
+  const { dragTile, dragPosition, dragScale } = useDeckStore();
 
   const panGesture = Gesture.Pan()
-    .activateAfterLongPress(500)
-    .onBegin((event) => {
-      // runOnJS(log.debug)('[panGesture][onBegin]', itemId);
-    })
+    .activateAfterLongPress(150)
     .onStart((event) => {
-      // runOnJS(log.debug)('[panGesture][onStart]', itemId);
-      // isDragging.value = true;
       dragTile.value = item;
       dragScale.value = withSpring(1.2);
-      dragOffsetPosition.value = [-event.x, -event.y];
+      offset.value = [-event.x, -event.y];
       dragPosition.value = [
         event.absoluteX - event.x,
         event.absoluteY - event.y,
       ];
-      dragInitialPosition.value = dragPosition.value;
-      // runOnJS(setIsHidden)(true);
+
+      dragTile.value.position = dragPosition.value;
     })
     .onChange((event) => {
-      // runOnJS(log.debug)('[panGesture][onChange]', itemId);
       dragPosition.value = [
-        event.absoluteX + dragOffsetPosition.value[0],
-        event.absoluteY + dragOffsetPosition.value[1],
+        event.absoluteX + offset.value[0],
+        event.absoluteY + offset.value[1],
       ];
     })
     .onEnd((event) => {
@@ -68,14 +47,11 @@ export const DraggableTile = ({
       dragTile.value = undefined;
     });
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: isHidden ? 0 : 1,
-    // zIndex: -100,
-  }));
-
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View style={animatedStyle}>{children}</Animated.View>
+      <Animated.View style={{ opacity: isHidden ? 0 : 1 }}>
+        {children}
+      </Animated.View>
     </GestureDetector>
   );
 };

@@ -44,14 +44,6 @@ const GuideLines = () => (
 export const Index = () => {
   const worldCanvasRef = useRef<WorldCanvasRef>(null);
 
-  // const {
-  //   DebugDisplay,
-  //   updateWorldPosition,
-  //   updateTapPosition,
-  //   updateWorldTapPosition,
-  //   updateBBox,
-  // } = useDebugDisplay();
-
   const handleZoomIn = useCallback(() => {
     worldCanvasRef.current?.setZoom(ZOOM_FACTOR);
   }, []);
@@ -61,28 +53,7 @@ export const Index = () => {
   }, []);
 
   const handleReset = useCallback(() => {
-    // const tile = worldCanvasRef.current?.getSelectedTile();
-    // log.debug('[handleReset]', tile);
-
     worldCanvasRef.current?.startGame();
-  }, []);
-
-  const handleTouch = useCallback((event: WorldTouchEvent) => {
-    // updateTapPosition(event.position);
-    // updateWorldTapPosition(event.world);
-    const tile = worldCanvasRef.current?.selectTileAtPosition(event.world);
-    if (tile) {
-      log.debug('[handleTouch] selected', tile.id);
-      worldCanvasRef.current?.moveToPosition(tile.position);
-    }
-  }, []);
-
-  const handlePinch = useCallback((event: WorldTouchEvent) => {
-    log.debug('[handlePinch]', event);
-  }, []);
-
-  useEffect(() => {
-    // worldCanvasRef.current?.startGame();
   }, []);
 
   const handleOnReady = useCallback(() => {
@@ -100,13 +71,8 @@ export const Index = () => {
           tileHeight={100}
           importState={state}
         >
-          <WorldCanvas
-            ref={worldCanvasRef}
-            // onTouch={handleTouch}
-            onPinch={handlePinch}
-            onReady={handleOnReady}
-          >
-            <GuideLines />
+          <WorldCanvas ref={worldCanvasRef} onReady={handleOnReady}>
+            {/* <GuideLines /> */}
           </WorldCanvas>
 
           {/* <DebugDisplay /> */}
