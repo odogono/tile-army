@@ -1,29 +1,21 @@
+/* eslint-disable react-compiler/react-compiler */
+import { FillType, Group, Path, Skia } from '@shopify/react-native-skia';
+import { useMemo } from 'react';
 import {
-  FillType,
-  Group,
-  Path,
-  Skia,
-  Vector,
-} from '@shopify/react-native-skia';
-import { useEffect, useMemo } from 'react';
-import {
-  runOnJS,
   SharedValue,
+  useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { Position } from '@types';
-import { createLogger } from '@helpers/log';
-
-const log = createLogger('TouchPoint');
 
 export const TouchPoint = ({
   pos,
   isVisible,
 }: {
-  pos: Position;
+  pos: SharedValue<Position>;
   isVisible: SharedValue<boolean>;
 }) => {
   const scale = useSharedValue(1);
@@ -39,10 +31,12 @@ export const TouchPoint = ({
 
   const matrix = useDerivedValue(() => {
     const m3 = Skia.Matrix();
-    if (pos) {
-      m3.translate(pos[0], pos[1]);
-    }
+    const [x, y] = pos.value ?? [0, 0];
+
+    m3.translate(x, y);
+
     m3.scale(scale.value, scale.value);
+
     return m3;
   }, [pos]);
 
@@ -50,29 +44,24 @@ export const TouchPoint = ({
     return `rgba(102, 102, 102, ${opacity.value})`;
   });
 
-  const startAnimation = () => {
-    scale.value = withSequence(
-      withTiming(0.2, { duration: 0 }),
-      withTiming(10, { duration: 500 }),
-    );
-    opacity.value = withSequence(
-      withTiming(1, { duration: 0 }),
-      withTiming(0, { duration: 400 }, () => {
-        // runOnJS(log.debug)('[TouchPoint] animation finished');
-        isVisible.value = false;
-      }),
-    );
-  };
-
-  useEffect(() => {
-    if (isVisible?.value) {
-      startAnimation();
-    }
-  }, [pos, isVisible]);
-
-  if (!pos || !isVisible?.value) {
-    return null;
-  }
+  useAnimatedReaction(
+    () => isVisible.value,
+    (_visible, wasVisible) => {
+      if (wasVisible) {
+        return;
+      }
+      scale.value = withSequence(
+        withTiming(0.2, { duration: 0 }),
+        withTiming(10, { duration: 500 }),
+      );
+      opacity.value = withSequence(
+        withTiming(1, { duration: 0 }),
+        withTiming(0, { duration: 400 }, () => {
+          isVisible.value = false;
+        }),
+      );
+    },
+  );
 
   return (
     <Group matrix={matrix}>

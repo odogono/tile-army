@@ -20,6 +20,7 @@ import {
 } from '@model/useTileMapStore';
 import { TileDeck } from '@components/TileDeck';
 import { Tile } from '@model/Tile';
+import { TouchPoint } from '@components/TouchPoint';
 import { WorldCanvasRef } from './types';
 import { useGestures } from './useGestures';
 
@@ -55,7 +56,7 @@ export const WorldCanvas = forwardRef(
 
     const { zoomOnPoint } = useTileMapStore();
 
-    const gesture = useGestures({
+    const { gesture, touchPointPos, touchPointVisible } = useGestures({
       onGameTouch,
     });
 
@@ -121,10 +122,7 @@ export const WorldCanvas = forwardRef(
           >
             <ContextBridge>
               <TileContainer>
-                {/* <TouchPoint
-                  pos={touchPointPos.value}
-                  isVisible={touchPointVisible}
-                /> */}
+                <TouchPoint pos={touchPointPos} isVisible={touchPointVisible} />
               </TileContainer>
 
               {children}

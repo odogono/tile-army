@@ -67,8 +67,6 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
     const { mViewPosition, mViewScale } = get();
     mViewPosition.value = position;
     mViewScale.value = scale;
-
-    // set({ viewPosition: position, viewScale: scale });
   },
 
   setViewScreenDims: (width: number, height: number) =>
@@ -88,6 +86,9 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
     options?: MoveToPositionOptions,
   ) => {
     // convert position from world to screen
+    // todo: cant yet explain why this works
+    // the transformation is just scaling, which should
+    // already be handled by mViewMatrix
     const screenPosition = get().convertWorldToScreen(position);
 
     const { mViewPosition, mViewScale } = get();

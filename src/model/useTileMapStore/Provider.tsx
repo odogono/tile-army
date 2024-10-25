@@ -1,22 +1,13 @@
 /* eslint-disable react-compiler/react-compiler */
 import { useCallback, useRef } from 'react';
 import { createLogger } from '@helpers/log';
-import { BBox, Position } from '@types';
-import {
-  makeMutable,
-  runOnJS,
-  useAnimatedReaction,
-  useDerivedValue,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { Skia, SkMatrix } from '@shopify/react-native-skia';
+import { Position } from '@types';
+import { useAnimatedReaction, withTiming } from 'react-native-reanimated';
 import {
   calculateZoom as calculateZoomInternal,
   CalculateZoomProps,
 } from '@model/helpers';
 import { useStore } from 'zustand';
-import { shallow } from 'zustand/shallow';
 import { TileMapContext } from './context';
 import {
   createTileMapStore,
@@ -89,9 +80,11 @@ export const TileMapStoreProvider = ({
         // Translate to the center of the screen
         m.translate(viewWidth / 2, viewHeight / 2);
 
-        // Apply scale around the current position
         m.translate(-x, -y);
+
+        // Apply scale around the current position
         m.scale(scale, scale);
+
         return m;
       });
 
@@ -146,19 +139,10 @@ export const TileMapStoreProvider = ({
 
   const zoomOnPoint = useCallback(
     (focalPoint: Position, zoomFactor: number) => {
-      // const onFinish = () => {
-      //   'worklet';
-      //   // log.debug('[setZoom] onFinish');
-      //   // runOnJS(log.debug)('[setZoom] onFinish');
-      //   runOnJS(setViewPosition)(position.value, scale.value);
-      // };
-
       const { position: toPos, scale: toScale } = calculateZoom({
         focalPoint,
-        // focalPoint: [screenWidth / 2, screenHeight / 2],
         zoomFactor,
       });
-      // log.debug('[setZoom] toPos', toPos);
       mViewPosition.value = withTiming(toPos, { duration: 300 });
       mViewScale.value = withTiming(toScale, { duration: 300 });
     },

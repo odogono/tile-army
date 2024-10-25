@@ -9,9 +9,6 @@ export type ControlsProps = {
 export const Controls = ({ onZoomIn, onZoomOut, onReset }: ControlsProps) => {
   return (
     <View style={styles.zoomButtonsContainer}>
-      <TouchableOpacity style={styles.zoomButton} onPress={onReset}>
-        <Text style={styles.zoomButtonText}>x</Text>
-      </TouchableOpacity>
       <TouchableOpacity style={styles.zoomButton} onPress={onZoomIn}>
         <Text style={styles.zoomButtonText}>+</Text>
       </TouchableOpacity>

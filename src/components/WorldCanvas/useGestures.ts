@@ -34,7 +34,6 @@ export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
     () =>
       Gesture.Tap().onEnd((event) => {
         'worklet';
-        runOnJS(log.debug)('[tapGesture] end');
         const worldPos = screenToWorld([event.x, event.y]);
 
         touchPointPos.value = worldPos;
@@ -70,5 +69,5 @@ export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
     [tapGesture, panGesture, pinchGesture],
   );
 
-  return gesture;
+  return { gesture, touchPointPos, touchPointVisible };
 };
