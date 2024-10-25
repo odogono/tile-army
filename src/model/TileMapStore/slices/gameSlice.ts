@@ -80,16 +80,21 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
   },
 
   focusOnTile: (tile: Tile) => {
-    const { moveToPosition, worldToCamera } = get() as unknown as ViewSlice;
-    (get() as unknown as TileSlice).addOptionTiles(tile, [
-      Directions.west,
-      Directions.south,
-      Directions.east,
-    ]);
+    const { moveToPosition } = get() as unknown as ViewSlice;
 
     const [x, y] = tile.position;
 
-    moveToPosition(worldToCamera([x, y + 100]), 1, { after: 400 });
+    moveToPosition([x, y + 100], 1, { after: 400 });
+
+    delay(
+      () =>
+        (get() as unknown as TileSlice).addOptionTiles(tile, [
+          Directions.west,
+          Directions.south,
+          Directions.east,
+        ]),
+      450,
+    );
   },
 
   gameHandleTileDropAllowed: (droppedTile: Tile, targetTile?: Tile) => {
@@ -143,7 +148,7 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
   },
 
   onGameTouch: (position: Position) => {
-    // const { moveToPosition, worldToCamera } = get() as unknown as ViewSlice;
+    const { moveToPosition } = get() as unknown as ViewSlice;
     const { getTileAtPosition } = get() as unknown as TileSlice;
 
     const tile = getTileAtPosition(position);
@@ -167,9 +172,8 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
     //   addTiles([newTile]);
 
     //   get().focusOnTile(newTile);
-    // } else {
-    //   const pos = worldToCamera(tile.position);
-    //   moveToPosition(pos);
-    // }
+    if (tile.type !== 'option') {
+      moveToPosition(tile.position);
+    }
   },
 });

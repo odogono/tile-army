@@ -6,17 +6,18 @@ import { TileMapStore } from '../TileMapStore';
 
 export type TileMapContextType = {
   store: TileMapStore;
-  bbox: Readonly<SharedValue<BBox>>;
-  matrix: Readonly<SharedValue<SkMatrix>>;
-  inverseMatrix: Readonly<SharedValue<SkMatrix>>;
-  position: Mutable<Position>;
-  scale: Mutable<number>;
+  // bbox: Readonly<SharedValue<BBox>>;
+  // matrix: Readonly<SharedValue<SkMatrix>>;
+  // inverseMatrix: Readonly<SharedValue<SkMatrix>>;
+  mViewPosition: Mutable<Position>;
+  mViewScale: Mutable<number>;
+  mViewBBox: Mutable<BBox>;
   screenToWorld: (point: Position) => Position;
-  worldToCamera: (point: Position) => Position;
-  cameraToWorld: (point: Position) => Position;
+  // worldToCamera: (point: Position) => Position;
+  // cameraToWorld: (point: Position) => Position;
   zoomOnPoint: (focalPoint: Position, zoomFactor: number) => void;
   worldToScreen: (point: Position) => Position;
-  screenToWorldMap: (points: Position[]) => Position[];
+  // screenToWorldMap: (points: Position[]) => Position[];
 };
 
 export const TileMapContext = createContext<TileMapContextType | null>(null);

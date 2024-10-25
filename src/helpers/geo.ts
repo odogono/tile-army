@@ -58,3 +58,11 @@ export const posSub = (pos1: Position, pos2: Position): Position => {
 export const posAdd = (pos1: Position, pos2: Position): Position => {
   return [pos1[0] + pos2[0], pos1[1] + pos2[1]];
 };
+
+export const posMul = (pos: Position, multiplier: number): Position => {
+  return [pos[0] * multiplier, pos[1] * multiplier];
+};
+
+export const posDiv = (pos: Position, divisor: number): Position => {
+  return [pos[0] / divisor, pos[1] / divisor];
+};

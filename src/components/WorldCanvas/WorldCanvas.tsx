@@ -48,11 +48,12 @@ export const WorldCanvas = forwardRef(
       selectTileAtPosition,
       startGame,
       moveToPosition,
+      setViewPosition: setPosition,
       onGameTouch,
       gameHandleTileDragEnd,
     } = useTileMapStoreActions();
 
-    const { position, zoomOnPoint } = useTileMapStore();
+    const { zoomOnPoint } = useTileMapStore();
 
     const gesture = useGestures({
       onGameTouch,
@@ -66,9 +67,7 @@ export const WorldCanvas = forwardRef(
         zoomOnPoint([viewWidth / 2, viewHeight / 2], zoomFactor);
       },
       moveToPosition,
-      setPosition: (worldPosition: Position) => {
-        position.value = worldPosition;
-      },
+      setPosition,
       selectTileAtPosition: (worldPosition: Position) => {
         selectTileAtPosition(worldPosition);
         return getSelectedTile();

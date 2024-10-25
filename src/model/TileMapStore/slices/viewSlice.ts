@@ -4,13 +4,18 @@ import {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
+import { scale, Skia, SkMatrix } from '@shopify/react-native-skia';
 import { StateCreator } from 'zustand';
 import { createLogger } from '@helpers/log';
-import { Mutable, Position } from '@types';
-
+import { BBox, Mutable, Position } from '@types';
+import { posDiv, posMul } from '@helpers/geo';
 export type ViewSliceProps = {
   mViewPosition: Mutable<Position>;
   mViewScale: Mutable<number>;
+
+  mViewMatrix: Mutable<SkMatrix>;
+  mViewBBox: Mutable<BBox>;
+  mViewInverseMatrix: Mutable<SkMatrix>;
 
   viewWidth: number;
   viewHeight: number;
@@ -30,8 +35,7 @@ export type ViewSliceActions = {
     options?: MoveToPositionOptions,
   ) => void;
 
-  cameraToWorld: (position: Position) => Position;
-  worldToCamera: (position: Position) => Position;
+  convertWorldToScreen: (position: Position) => Position;
 
   setViewScreenDims: (width: number, height: number) => void;
 };
@@ -41,7 +45,9 @@ export type ViewSlice = ViewSliceProps & ViewSliceActions;
 const defaultState: ViewSliceProps = {
   mViewPosition: makeMutable<Position>([0, 0]),
   mViewScale: makeMutable<number>(1),
-
+  mViewMatrix: makeMutable<SkMatrix>(Skia.Matrix()),
+  mViewInverseMatrix: makeMutable<SkMatrix>(Skia.Matrix()),
+  mViewBBox: makeMutable<BBox>([0, 0, 0, 0]),
   viewWidth: 0,
   viewHeight: 0,
 };
@@ -71,14 +77,9 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
       viewHeight: height,
     })),
 
-  worldToCamera: (position: Position) => {
+  convertWorldToScreen: (position: Position) => {
     const { mViewScale } = get();
-    return [position[0] * mViewScale.value, position[1] * mViewScale.value];
-  },
-
-  cameraToWorld: (position: Position) => {
-    const { mViewScale } = get();
-    return [position[0] / mViewScale.value, position[1] / mViewScale.value];
+    return posMul(position, mViewScale.value);
   },
 
   moveToPosition: (
@@ -86,7 +87,9 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
     scale: number = defaultState.mViewScale.value,
     options?: MoveToPositionOptions,
   ) => {
-    // log.debug('[moveToPosition]', position, scale);
+    // convert position from world to screen
+    const screenPosition = get().convertWorldToScreen(position);
+
     const { mViewPosition, mViewScale } = get();
 
     const duration = options?.duration ?? 300;
@@ -94,7 +97,7 @@ export const createViewSlice: StateCreator<ViewSlice, [], [], ViewSlice> = (
 
     mViewPosition.value = withDelay(
       after,
-      withTiming(position, {
+      withTiming(screenPosition, {
         duration,
         easing: Easing.inOut(Easing.ease),
       }),

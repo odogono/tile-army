@@ -20,9 +20,11 @@ export type TileContainerProps = React.PropsWithChildren<object>;
 const log = createLogger('TileContainer');
 
 export const TileContainer = ({ children }: TileContainerProps) => {
-  const { bbox, matrix } = useTileMapStore();
+  // const { bbox } = useTileMapStore();
   const { getVisibleTiles } = useTileMapStoreActions();
   const dragTargetTile = useTileMapStoreState((state) => state.dragTargetTile);
+  const mViewMatrix = useTileMapStoreState((state) => state.mViewMatrix);
+  const mViewBBox = useTileMapStoreState((state) => state.mViewBBox);
 
   const visibleTilesRef = useRef<string>('');
   const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
@@ -57,8 +59,9 @@ export const TileContainer = ({ children }: TileContainerProps) => {
 
   // when the bbox changes, update the visible tiles
   useAnimatedReaction(
-    () => [bbox.value, dragTargetTile.value],
-    () => runOnJS(updateVisibleTiles)(bbox.value, dragTargetTile.value?.id),
+    () => [mViewBBox.value, dragTargetTile.value],
+    () =>
+      runOnJS(updateVisibleTiles)(mViewBBox.value, dragTargetTile.value?.id),
   );
 
   // useRenderingTrace('TileContainer', {
@@ -71,7 +74,7 @@ export const TileContainer = ({ children }: TileContainerProps) => {
   // log.debug('render?', visibleTiles.length);
 
   return (
-    <Group matrix={matrix}>
+    <Group matrix={mViewMatrix}>
       {visibleTiles.map((tile) => (
         <TileComponent
           key={`${tile.id}-${tile.type}`}

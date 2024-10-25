@@ -2,8 +2,15 @@
 import { useCallback, useRef } from 'react';
 import { createLogger } from '@helpers/log';
 import { BBox, Position } from '@types';
-import { runOnJS, useDerivedValue, withTiming } from 'react-native-reanimated';
-import { Skia } from '@shopify/react-native-skia';
+import {
+  makeMutable,
+  runOnJS,
+  useAnimatedReaction,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { Skia, SkMatrix } from '@shopify/react-native-skia';
 import {
   calculateZoom as calculateZoomInternal,
   CalculateZoomProps,
@@ -43,121 +50,86 @@ export const TileMapStoreProvider = ({
     }
   }
 
-  const { mViewPosition, mViewScale } = storeRef.current.getState();
+  const {
+    mViewPosition,
+    mViewScale,
+    mViewMatrix,
+    mViewInverseMatrix,
+    mViewBBox,
+  } = storeRef.current.getState();
 
   const viewWidth = useStore(storeRef.current, (state) => state.viewWidth);
   const viewHeight = useStore(storeRef.current, (state) => state.viewHeight);
 
-  const bbox = useDerivedValue<BBox>(() => {
-    const [x, y] = mViewPosition.value;
-    const [sx, sy] = [x / mViewScale.value, y / mViewScale.value];
-    const width = viewWidth / mViewScale.value;
-    const height = viewHeight / mViewScale.value;
-    const hWidth = width / 2;
-    const hHeight = height / 2;
+  useAnimatedReaction(
+    () => [mViewPosition.value, mViewScale.value] as [Position, number],
+    ([position, scale]) => {
+      const [x, y] = position;
+      const [sx, sy] = [x / scale, y / scale];
+      const width = viewWidth / scale;
+      const height = viewHeight / scale;
+      const hWidth = width / 2;
+      const hHeight = height / 2;
 
-    // sw point, then ne point
-    return [sx - hWidth, sy + hHeight, sx + hWidth, sy - hHeight];
-  });
-
-  const matrix = useDerivedValue(() => {
-    const [x, y] = mViewPosition.value;
-    const m = Skia.Matrix();
-
-    // Translate to the center of the screen
-    m.translate(viewWidth / 2, viewHeight / 2);
-
-    // Apply scale around the current position
-    m.translate(-x, -y);
-    m.scale(mViewScale.value, mViewScale.value);
-
-    return m;
-  });
-
-  const inverseMatrix = useDerivedValue(() => {
-    const [x, y] = mViewPosition.value;
-    const m = Skia.Matrix();
-
-    // Invert the operations in reverse order
-    m.scale(1 / mViewScale.value, 1 / mViewScale.value);
-    m.translate(x, y);
-
-    m.translate(-viewWidth / 2, -viewHeight / 2);
-
-    return m;
-  });
-
-  const worldToScreen = useCallback(
-    (point: Position): Position => {
-      'worklet';
-      const [x, y] = point;
-      const m = matrix.value.get();
-      const a = m[0],
-        b = m[1],
-        c = m[2],
-        d = m[3],
-        e = m[4],
-        f = m[5];
-
-      const screenX = a * x + b * y + c;
-      const screenY = d * x + e * y + f;
-
-      return [screenX, screenY];
+      // sw point, then ne point
+      mViewBBox.value = [sx - hWidth, sy + hHeight, sx + hWidth, sy - hHeight];
     },
-    [matrix],
   );
 
-  const screenToWorld = useCallback(
-    (point: Position): Position => {
-      'worklet';
-      const [x, y] = point;
-      const m = inverseMatrix.value.get();
-      const a = m[0],
-        b = m[1],
-        c = m[2],
-        d = m[3],
-        e = m[4],
-        f = m[5];
+  useAnimatedReaction(
+    () => [mViewPosition.value, mViewScale.value] as [Position, number],
+    ([position, scale]) => {
+      const [x, y] = position;
 
-      const worldX = a * x + b * y + c;
-      const worldY = d * x + e * y + f;
+      // as the matrix is a complex object,
+      // we modify rather than reassign
+      mViewMatrix.modify((m) => {
+        m.identity();
 
-      return [worldX, worldY];
+        // Translate to the center of the screen
+        m.translate(viewWidth / 2, viewHeight / 2);
+
+        // Apply scale around the current position
+        m.translate(-x, -y);
+        m.scale(scale, scale);
+        return m;
+      });
+
+      mViewInverseMatrix.modify((m) => {
+        m.identity();
+
+        // Invert the operations in reverse order
+        m.scale(1 / scale, 1 / scale);
+
+        m.translate(x, y);
+
+        m.translate(-viewWidth / 2, -viewHeight / 2);
+
+        return m;
+      });
     },
-    [inverseMatrix],
   );
 
-  const screenToWorldMap = useCallback((points: Position[]) => {
-    'worklet';
-    const m = inverseMatrix.value.get();
-    const a = m[0],
-      b = m[1],
-      c = m[2],
-      d = m[3],
-      e = m[4],
-      f = m[5];
-
-    return points.map((point) => {
-      const [x, y] = point;
-      const worldX = a * x + b * y + c;
-      const worldY = d * x + e * y + f;
-      return [worldX, worldY];
-    }) as Position[];
-  }, []);
-
-  const worldToCamera = useCallback(
-    (point: Position): Position => {
-      // 'worklet';
-      const [x, y] = point;
-      return [x * mViewScale.value, y * mViewScale.value];
-    },
-    [mViewScale],
-  );
-
-  const cameraToWorld = useCallback((point: Position): Position => {
+  const worldToScreen = useCallback((point: Position): Position => {
     'worklet';
     const [x, y] = point;
-    return [x / mViewScale.value, y / mViewScale.value];
+    const [a, b, c, d, e, f] = mViewMatrix.value.get();
+
+    const screenX = a * x + b * y + c;
+    const screenY = d * x + e * y + f;
+
+    return [screenX, screenY];
+  }, []);
+
+  const screenToWorld = useCallback((point: Position): Position => {
+    'worklet';
+    const [x, y] = point;
+    const [a, b, c, d, e, f] = mViewInverseMatrix.value.get();
+
+    const worldX = a * x + b * y + c;
+    const worldY = d * x + e * y + f;
+
+    return [worldX, worldY];
   }, []);
 
   const calculateZoom = useCallback((props: CalculateZoomProps) => {
@@ -198,17 +170,12 @@ export const TileMapStoreProvider = ({
   return (
     <TileMapContext.Provider
       value={{
-        position: mViewPosition,
-        scale: mViewScale,
+        mViewPosition,
+        mViewScale,
+        mViewBBox,
         store: storeRef.current,
-        bbox,
-        matrix,
-        inverseMatrix,
         worldToScreen,
         screenToWorld,
-        screenToWorldMap,
-        worldToCamera,
-        cameraToWorld,
         zoomOnPoint,
       }}
     >

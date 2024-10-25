@@ -18,15 +18,14 @@ export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
   const touchPointPos = useSharedValue<Position>([0, 0]);
   const touchPointVisible = useSharedValue(false);
 
-  const { position, bbox, screenToWorld, zoomOnPoint } = useTileMapStore();
+  const { mViewPosition, mViewBBox, screenToWorld, zoomOnPoint } =
+    useTileMapStore();
 
   const panGesture = useMemo(
     () =>
       Gesture.Pan().onChange((event) => {
-        'worklet';
-        // runOnJS(log.debug)('[panGesture] change');
-        const [x, y] = position.value;
-        position.value = [x - event.changeX, y - event.changeY];
+        const [x, y] = mViewPosition.value;
+        mViewPosition.value = [x - event.changeX, y - event.changeY];
       }),
     [],
   );
@@ -45,7 +44,7 @@ export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
           runOnJS(onTouch)({
             position: [event.x, event.y],
             world: worldPos,
-            bbox: bbox.value,
+            bbox: mViewBBox.value,
           });
 
         runOnJS(onGameTouch)(worldPos);
