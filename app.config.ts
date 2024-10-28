@@ -1,16 +1,18 @@
 import { ConfigContext, ExpoConfig } from '@expo/config';
 import * as dotenv from 'dotenv';
 
+const IS_DEV = process.env.APP_VARIANT === 'development';
+
 dotenv.config();
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'tile-army',
+  name: IS_DEV ? 'TileArmy (Dev)' : 'TileArmy',
   slug: 'tile-army',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: 'myapp',
+  scheme: 'tilearmy',
   userInterfaceStyle: 'automatic',
   splash: {
     image: './assets/images/splash.png',
@@ -18,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: '#ffffff',
   },
   ios: {
-    bundleIdentifier: 'net.odgn.tilearmy',
+    bundleIdentifier: IS_DEV ? 'net.odgn.tilearmy.dev' : 'net.odgn.tilearmy',
     supportsTablet: true,
   },
   android: {
@@ -26,7 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    package: 'net.odgn.tilearmy',
+    package: IS_DEV ? 'net.odgn.tilearmy.dev' : 'net.odgn.tilearmy',
   },
   web: {
     bundler: 'metro',

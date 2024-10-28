@@ -9,6 +9,9 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "android": {
+        "gradleCommand": ":app:assembleDevelopmentDebug"
       }
     },
     "preview": {
@@ -19,7 +22,8 @@
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:bundleProductionRelease"
       },
       "ios": {
         "resourceClass": "m1-medium"
