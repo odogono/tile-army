@@ -5,6 +5,10 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 
 dotenv.config();
 
+if (IS_DEV) {
+  require('./src/ReactotronConfig');
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? 'TileArmy (Dev)' : 'TileArmy',

@@ -66,3 +66,17 @@ export const posMul = (pos: Position, multiplier: number): Position => {
 export const posDiv = (pos: Position, divisor: number): Position => {
   return [pos[0] / divisor, pos[1] / divisor];
 };
+
+export const posEquals = (
+  pos1: Position,
+  pos2?: Position | null,
+  round: number = 2,
+): boolean => {
+  if (!pos2) {
+    return false;
+  }
+  return (
+    Math.round(pos1[0] * round) === Math.round(pos2[0] * round) &&
+    Math.round(pos1[1] * round) === Math.round(pos2[1] * round)
+  );
+};

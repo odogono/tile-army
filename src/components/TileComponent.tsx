@@ -1,14 +1,12 @@
-import { createLogger } from '@helpers/log';
+import React, { useEffect, useMemo } from 'react';
 import {
   Blur,
   DashPathEffect,
   Group,
   Path,
-  Rect,
   Skia,
   SkPath,
 } from '@shopify/react-native-skia';
-import React, { useEffect, useMemo } from 'react';
 import {
   useDerivedValue,
   useSharedValue,
@@ -17,8 +15,6 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { Tile } from '@model/Tile';
-
-const log = createLogger('TileComponent', ['debug']);
 
 const createTilePath = (width: number, height: number, r: number) => {
   const rX = -(width / 2);
@@ -58,14 +54,7 @@ const StandardTile = ({ path, colour, isSelected, hasShadow }: TileProps) => {
           </Path>
         </Group>
       )}
-
-      <Path path={path} color={colour}>
-        {/* <LinearGradient
-          start={vec(2 * gR, 0)}
-          end={vec(4 * gR, 4 * gR)}
-          colors={['lightblue', colour ]}
-        /> */}
-      </Path>
+      <Path path={path} color={colour} />
       {isSelected && (
         <Path path={path} strokeWidth={2} color='#000' style='stroke'>
           <DashPathEffect intervals={[4, 4]} />
@@ -119,7 +108,7 @@ export const TileComponent = (props: TileComponentProps) => {
     path,
   };
 
-  log.debug(props.id, props.type);
+  // log.debug(props.id, { isSelected, type });
   return (
     <Group matrix={matrix}>
       {type === 'option' ? (

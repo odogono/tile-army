@@ -29,24 +29,10 @@ const defaultState: GameSliceProps = {
 const log = createLogger('gameSlice');
 
 export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
-  set,
+  _set,
   get,
 ) => ({
   ...defaultState,
-
-  // setGameState: ( newState: GameSliceProps['state']) => ()
-  //   switch (newState) {
-  //     case 'menu':
-  //       break;
-  //     case 'playing':
-  //       state.startGame();
-  //       break;
-  //     case 'paused':
-  //       break;
-  //     case 'gameOver':
-  //       break;
-  //   }
-  // },
 
   startGame: () => {
     const { setViewPosition, viewWidth, viewHeight } =
@@ -70,13 +56,6 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
 
     // set up the deck
     initialiseDeck();
-
-    // // set the option tiles
-    // (get() as unknown as TileSlice).addOptionTiles(tile, [
-    //   Directions.west,
-    //   Directions.south,
-    //   Directions.east,
-    // ]);
   },
 
   focusOnTile: (tile: Tile) => {

@@ -17,9 +17,13 @@ const log = createLogger('TileContainer');
 export const TileContainer = ({ children }: TileContainerProps) => {
   const { getVisibleTiles } = useTileMapStoreActions();
 
-  const dragTargetTile = useTileMapStoreState((state) => state.dragTargetTile);
-  const mViewMatrix = useTileMapStoreState((state) => state.mViewMatrix);
-  const mViewBBox = useTileMapStoreState((state) => state.mViewBBox);
+  const [isDragging, dragTargetTile, mViewMatrix, mViewBBox] =
+    useTileMapStoreState((state) => [
+      state.isDragging,
+      state.dragTargetTile,
+      state.mViewMatrix,
+      state.mViewBBox,
+    ]);
 
   const visibleTilesRef = useRef<string>('');
   const [visibleTiles, setVisibleTiles] = useState<Tile[]>([]);
@@ -36,15 +40,12 @@ export const TileContainer = ({ children }: TileContainerProps) => {
         })
         .join('|');
 
-      const adjustedVisible = visible.map((t) => {
-        if (t.id === dragTargetId) {
-          return { ...t, isSelected: true };
-        }
-        return t;
-      });
+      const adjustedVisible = visible.map((t) => ({
+        ...t,
+        isSelected: t.id === dragTargetId,
+      }));
 
       if (ids !== visibleTilesRef.current) {
-        // log.debug('[updateVisibleTiles]', ids, dragTargetId);
         visibleTilesRef.current = ids;
         setVisibleTiles(adjustedVisible);
       }
@@ -54,9 +55,18 @@ export const TileContainer = ({ children }: TileContainerProps) => {
 
   // when the bbox changes, update the visible tiles
   useAnimatedReaction(
-    () => [mViewBBox.value, dragTargetTile.value],
     () =>
-      runOnJS(updateVisibleTiles)(mViewBBox.value, dragTargetTile.value?.id),
+      [mViewBBox.value, isDragging.value, dragTargetTile.value] as [
+        BBox,
+        boolean,
+        Tile | undefined,
+      ],
+    ([bbox, isDragging, dragTargetTile]) => {
+      runOnJS(updateVisibleTiles)(
+        bbox,
+        isDragging ? dragTargetTile?.id : undefined,
+      );
+    },
   );
 
   return (

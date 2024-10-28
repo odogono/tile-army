@@ -94,7 +94,6 @@ export const WorldCanvas = forwardRef(
         log.debug('[handleDragEnd]', draggedTile.id, 'on to', targetTile?.id);
 
         return gameHandleTileDragEnd(draggedTile, targetTile);
-        // return false;
       },
       [],
     );

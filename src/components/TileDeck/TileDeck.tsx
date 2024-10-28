@@ -49,10 +49,7 @@ export type TileDeckProps = {
 
 const AnimatedListItem = Animated.createAnimatedComponent(View);
 
-export const TileDeck: React.FC<TileDeckProps> = ({
-  onDragOver,
-  onDragEnd,
-}) => {
+export const TileDeck: React.FC<TileDeckProps> = ({ onDragEnd }) => {
   const listRef = useRef<FlatList<Tile>>(null);
   const listContainerRef = useRef<View>(null);
   const { worldToScreen } = useTileMapStore();
@@ -60,7 +57,8 @@ export const TileDeck: React.FC<TileDeckProps> = ({
 
   const deckTiles = useTileMapStoreState((state) => state.deckTiles);
 
-  const { dragPosition, dragScale, dragTile, dragTargetTile } = useDeckStore();
+  const { isDragging, dragPosition, dragScale, dragTile, dragTargetTile } =
+    useDeckStore();
 
   // listens to the drag position and checks for tiles
   // that the draggable tile is over
@@ -81,10 +79,6 @@ export const TileDeck: React.FC<TileDeckProps> = ({
   const handleDragEnd = useCallback((droppedTile: Tile, targetTile?: Tile) => {
     const dropSuccess = onDragEnd(droppedTile, targetTile);
 
-    // log.debug('[onDragEnd]', droppedTile.id, targetTile?.id, {
-    //   dropSuccess,
-    // });
-
     const animCb = () => {
       'worklet';
       runOnJS(setDraggedItem)(null);
@@ -94,7 +88,6 @@ export const TileDeck: React.FC<TileDeckProps> = ({
 
     if (dropSuccess && targetTile) {
       // animate to the target tile
-
       const targetPosition = posSub(worldToScreen(targetTile.position), [
         targetTile.size / 2,
         targetTile.size / 2,
@@ -123,20 +116,16 @@ export const TileDeck: React.FC<TileDeckProps> = ({
       const previousDragTarget = previous?.[1];
 
       if (currentDragTile && !previousDragTile) {
-        // runOnJS(log.debug)('🙌 drag start', currentDragTile.id);
+        isDragging.value = true;
+        // runOnJS(log.debug)('drag start', currentDragTile.id);
         runOnJS(handleDragStart)(currentDragTile);
       } else if (currentDragTarget && !previousDragTarget) {
-        // runOnJS(log.debug)('🙌 drag over', currentDragTarget.id);
+        // runOnJS(log.debug)('drag over', currentDragTarget.id);
       } else if (!currentDragTarget && previousDragTarget) {
-        // runOnJS(log.debug)('🙌 drag out', previousDragTarget.id);
+        // runOnJS(log.debug)('drag out', previousDragTarget.id);
       } else if (!currentDragTile && previousDragTile) {
-        // runOnJS(log.debug)(
-        //   '🙌 drag fin',
-        //   previousDragTile.id,
-        //   previousDragTarget?.id,
-        // );
+        isDragging.value = false;
         dragTargetTile.value = undefined;
-
         runOnJS(handleDragEnd)(previousDragTile, previousDragTarget);
       }
     },

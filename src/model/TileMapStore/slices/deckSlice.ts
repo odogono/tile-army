@@ -5,6 +5,7 @@ import { createTile, Tile } from '@model/Tile';
 import { getRandomColour } from '@model/state';
 
 export type DeckSliceProps = {
+  isDragging: Mutable<boolean>;
   dragPosition: Mutable<Position>;
   dragScale: Mutable<number>;
   dragTile: Mutable<Tile | undefined>;
@@ -23,6 +24,7 @@ export type DeckSliceActions = {
 export type DeckSlice = DeckSliceProps & DeckSliceActions;
 
 const defaultState: DeckSliceProps = {
+  isDragging: makeMutable<boolean>(false),
   dragTile: makeMutable<Tile | undefined>(undefined),
   dragTargetTile: makeMutable<Tile | undefined>(undefined),
   dragPosition: makeMutable<Position>([0, 0]),
