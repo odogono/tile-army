@@ -1,45 +1,16 @@
 import { createLogger } from '@helpers/log';
-import { Rect } from '@shopify/react-native-skia';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { FiberProvider } from 'its-fine';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import {
-  WorldCanvas,
-  WorldCanvasRef,
-  WorldTouchEvent,
-} from '@components/WorldCanvas';
+import { WorldCanvas, WorldCanvasRef } from '@components/WorldCanvas';
 import { TileMapStoreProvider } from '@model/useTileMapStore';
 import { state } from '@model/state';
-import { useDebugDisplay } from '@components/DebugDisplay';
 import { Controls } from '@components/Controls';
-import { useRenderingTrace } from '../src/helpers/useRenderingTrace';
-
-const screenWidth = Dimensions.get('window').width;
-const screenHeight = Dimensions.get('window').height;
 
 const log = createLogger('Index');
 
 const ZOOM_FACTOR = 1.2;
-
-const GuideLines = () => (
-  <>
-    <Rect
-      x={0}
-      y={screenHeight / 2}
-      width={screenWidth}
-      height={1}
-      color='red'
-    />
-    <Rect
-      x={screenWidth / 2}
-      y={0}
-      width={1}
-      height={screenHeight}
-      color='red'
-    />
-  </>
-);
 
 export const Index = () => {
   const worldCanvasRef = useRef<WorldCanvasRef>(null);

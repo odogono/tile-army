@@ -1,16 +1,11 @@
 import { TileComponent } from '@components/TileComponent';
-import { Group, Rect } from '@shopify/react-native-skia';
+import { Group } from '@shopify/react-native-skia';
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  runOnJS,
-  useAnimatedReaction,
-  useDerivedValue,
-} from 'react-native-reanimated';
+import { runOnJS, useAnimatedReaction } from 'react-native-reanimated';
 import { BBox } from '@types';
 import { createLogger } from '@helpers/log';
 import { Tile } from '@model/Tile';
 import {
-  useTileMapStore,
   useTileMapStoreActions,
   useTileMapStoreState,
 } from '@model/useTileMapStore';
@@ -20,8 +15,8 @@ export type TileContainerProps = React.PropsWithChildren<object>;
 const log = createLogger('TileContainer');
 
 export const TileContainer = ({ children }: TileContainerProps) => {
-  // const { bbox } = useTileMapStore();
   const { getVisibleTiles } = useTileMapStoreActions();
+
   const dragTargetTile = useTileMapStoreState((state) => state.dragTargetTile);
   const mViewMatrix = useTileMapStoreState((state) => state.mViewMatrix);
   const mViewBBox = useTileMapStoreState((state) => state.mViewBBox);
@@ -63,15 +58,6 @@ export const TileContainer = ({ children }: TileContainerProps) => {
     () =>
       runOnJS(updateVisibleTiles)(mViewBBox.value, dragTargetTile.value?.id),
   );
-
-  // useRenderingTrace('TileContainer', {
-  //   getVisibleTiles,
-  //   updateVisibleTiles,
-  //   visibleTiles,
-  //   // stateViewPosition,
-  // });
-
-  // log.debug('render?', visibleTiles.length);
 
   return (
     <Group matrix={mViewMatrix}>
