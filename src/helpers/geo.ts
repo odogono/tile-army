@@ -9,15 +9,16 @@ import { BBox, Position, Rect } from '@types';
  * @returns The bounding box.
  */
 export const rectToBBox = (rect: Rect): BBox => {
-  return [rect.x, rect.y + rect.height, rect.x + rect.width, rect.y];
+  return [rect.x, rect.y, rect.x + rect.width, rect.y + rect.height];
 };
 
 export const bboxToRect = (bbox: BBox): Rect => {
+  const [minX, minY, maxX, maxY] = bbox;
   return {
-    x: bbox[0],
-    y: bbox[3],
-    width: bbox[2] - bbox[0],
-    height: bbox[1] - bbox[3],
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
   };
 };
 
@@ -28,27 +29,24 @@ export const bboxToString = (bbox: BBox) => {
 export const pointToBBox = (point: Position, size: number = 100): BBox => {
   const halfSize = size / 2;
   return [
-    // sw
     point[0] - halfSize,
-    point[1] + halfSize,
-    // ne
-    point[0] + halfSize,
     point[1] - halfSize,
+
+    point[0] + halfSize,
+    point[1] + halfSize,
   ];
 };
 
 export const bboxIntersectsBBox = (bbox1: BBox, bbox2: BBox) => {
-  const [west1, south1, east1, north1] = bbox1;
-  const [west2, south2, east2, north2] = bbox2;
+  const [minX1, minY1, maxX1, maxY1] = bbox1;
+  const [minX2, minY2, maxX2, maxY2] = bbox2;
 
-  return (
-    west1 <= east2 && east1 >= west2 && south1 >= north2 && north1 <= south2
-  );
+  return minX1 <= maxX2 && maxX1 >= minX2 && minY1 >= maxY2 && maxY1 <= minY2;
 };
 
 export const getBBoxCenter = (bbox: BBox): Position => {
-  const [west, south, east, north] = bbox;
-  return [(west + east) / 2, (south + north) / 2];
+  const [minX, minY, maxX, maxY] = bbox;
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
 };
 
 export const posSub = (pos1: Position, pos2: Position): Position => {

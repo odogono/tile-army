@@ -56,21 +56,15 @@ export const TileMapStoreProvider = ({
     () => [mViewPosition.value, mViewScale.value] as [Position, number],
     ([position, scale]) => {
       const [x, y] = position;
+
+      // update the bbox
       const [sx, sy] = [x / scale, y / scale];
       const width = viewWidth / scale;
       const height = viewHeight / scale;
       const hWidth = width / 2;
       const hHeight = height / 2;
 
-      // sw point, then ne point
-      mViewBBox.value = [sx - hWidth, sy + hHeight, sx + hWidth, sy - hHeight];
-    },
-  );
-
-  useAnimatedReaction(
-    () => [mViewPosition.value, mViewScale.value] as [Position, number],
-    ([position, scale]) => {
-      const [x, y] = position;
+      mViewBBox.value = [sx - hWidth, sy - hHeight, sx + hWidth, sy + hHeight];
 
       // as the matrix is a complex object,
       // we modify rather than reassign
@@ -138,13 +132,13 @@ export const TileMapStoreProvider = ({
   }, []);
 
   const zoomOnPoint = useCallback(
-    (focalPoint: Position, zoomFactor: number) => {
+    (focalPoint: Position, zoomFactor: number, duration: number = 300) => {
       const { position: toPos, scale: toScale } = calculateZoom({
         focalPoint,
         zoomFactor,
       });
-      mViewPosition.value = withTiming(toPos, { duration: 300 });
-      mViewScale.value = withTiming(toScale, { duration: 300 });
+      mViewPosition.value = withTiming(toPos, { duration });
+      mViewScale.value = withTiming(toScale, { duration });
     },
     [],
   );

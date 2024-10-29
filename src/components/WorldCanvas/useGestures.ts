@@ -17,6 +17,7 @@ const log = createLogger('useGestures');
 export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
   const touchPointPos = useSharedValue<Position>([0, 0]);
   const touchPointVisible = useSharedValue(false);
+  const pinchFocalPoint = useSharedValue<Position>([0, 0]);
 
   const { mViewPosition, mViewBBox, screenToWorld, zoomOnPoint } =
     useTileMapStore();
@@ -51,15 +52,26 @@ export const useGestures = ({ onTouch, onGameTouch }: UseGesturesProps) => {
     [],
   );
 
+  // todo - this doesn't well atm - scaling too sensitive
   const pinchGesture = useMemo(
     () =>
       Gesture.Pinch()
+        .onStart((event) => {
+          pinchFocalPoint.value = [event.focalX, event.focalY];
+          runOnJS(log.debug)('onStart', event.focalX, event.focalY);
+        })
         .onUpdate((event) => {
           'worklet';
 
-          zoomOnPoint([event.focalX, event.focalY], event.scale);
+          // Reduce the zoom sensitivity by applying a dampening factor
+          const dampening = 0.1; // Adjust this value between 0 and 1 to control zoom sensitivity
+          const zoomFactor = 1 + (event.scale - 1) * dampening;
+
+          runOnJS(zoomOnPoint)([event.focalX, event.focalY], zoomFactor, 1);
         })
-        .onEnd((event) => {}),
+        .onEnd((event) => {
+          runOnJS(log.debug)('onEnd', event.focalX, event.focalY);
+        }),
     [],
   );
 

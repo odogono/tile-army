@@ -6,11 +6,12 @@ import { Tile } from './Tile';
 export class TileRBush extends RBush<Tile> {
   toBBox(tile: Tile) {
     const halfSize = tile.size / 2;
+    const [minX, minY] = tile.position;
     return {
-      minX: tile.position[0] - halfSize,
-      minY: tile.position[1] - halfSize,
-      maxX: tile.position[0] + halfSize,
-      maxY: tile.position[1] + halfSize,
+      minX: minX - halfSize,
+      minY: minY - halfSize,
+      maxX: minX + halfSize,
+      maxY: minY + halfSize,
     };
   }
   compareMinX(a: Tile, b: Tile) {
@@ -32,11 +33,13 @@ export const createRTree = (): TileRBush => {
 };
 
 export const findByBBox = (rtree: TileRBush, bbox: BBox) => {
+  const [minX, minY, maxX, maxY] = bbox;
+
   return rtree.search({
-    minX: bbox[0],
-    minY: bbox[3],
-    maxX: bbox[2],
-    maxY: bbox[1],
+    minX,
+    minY,
+    maxX,
+    maxY,
   });
 };
 
