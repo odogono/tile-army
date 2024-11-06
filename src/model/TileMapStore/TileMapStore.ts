@@ -24,29 +24,17 @@ export const createTileMapStore = (
   initialState: Partial<TileMapStoreProps>,
 ) => {
   // this creates a vanilla store, since it is destined to be used with a context
-  return createStore<TileMapState>()(
-    // persist(
+  return createStore<TileMapState>()((...args) => ({
+    ...createTileSlice(...args),
 
-    (...args) => ({
-      // ...defaultState,
+    ...createGameSlice(...args),
 
-      ...createTileSlice(...args),
+    ...createViewSlice(...args),
 
-      ...createGameSlice(...args),
+    ...createDeckSlice(...args),
 
-      ...createViewSlice(...args),
-
-      ...createDeckSlice(...args),
-
-      ...initialState,
-    }),
-    // ,{
-    //   name: 'tile-map-store',
-    //   storage: customStorage,
-    //   skipHydration: true,
-    // },
-    // ),
-  );
+    ...initialState,
+  }));
 };
 
 // const clog = createLogger('customStorage');
