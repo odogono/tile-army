@@ -1,6 +1,5 @@
 /* eslint-disable react-compiler/react-compiler */
 import { useCallback, useRef } from 'react';
-import { createLogger } from '@helpers/log';
 import { Position } from '@types';
 import { useAnimatedReaction, withTiming } from 'react-native-reanimated';
 import {
@@ -17,14 +16,12 @@ import {
 } from '../TileMapStore';
 
 type AdditionalProps = {
-  importState: any;
+  importState?: any;
 };
 
 type ProviderProps = React.PropsWithChildren<
   Partial<TileMapStoreProps> & AdditionalProps
 >;
-
-const log = createLogger('TileMapStoreProvider');
 
 export const TileMapStoreProvider = ({
   children,

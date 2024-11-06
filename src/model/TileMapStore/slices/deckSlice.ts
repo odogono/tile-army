@@ -2,7 +2,7 @@ import { makeMutable } from 'react-native-reanimated';
 import { StateCreator } from 'zustand';
 import { Mutable, Position } from '@types';
 import { createTile, Tile } from '@model/Tile';
-import { getRandomColour } from '@model/state';
+import { getRandomColour } from '@model/colours';
 
 export type DeckSliceProps = {
   isDragging: Mutable<boolean>;

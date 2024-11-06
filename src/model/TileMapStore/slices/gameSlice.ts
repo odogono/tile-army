@@ -135,22 +135,6 @@ export const createGameSlice: StateCreator<GameSlice, [], [], GameSlice> = (
       return;
     }
 
-    log.debug('[onGameTouch] tile', tile.id);
-
-    // disabled now that the tiledeck is used
-
-    // if (tile.type === 'option') {
-    //   // remove all the option tiles
-    //   removeTilesOfTypes([tile.type]);
-
-    //   // add a new normal tile
-    //   const newTile = createTile({
-    //     position: tile.position,
-    //     colour: getRandomColour(),
-    //   });
-    //   addTiles([newTile]);
-
-    //   get().focusOnTile(newTile);
     if (tile.type !== 'option') {
       moveToPosition(tile.position);
     }

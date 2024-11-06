@@ -4,11 +4,12 @@ import {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import { scale, Skia, SkMatrix } from '@shopify/react-native-skia';
+import { Skia, SkMatrix } from '@shopify/react-native-skia';
 import { StateCreator } from 'zustand';
 import { createLogger } from '@helpers/log';
 import { BBox, Mutable, Position } from '@types';
-import { posDiv, posMul } from '@helpers/geo';
+import { posMul } from '@helpers/geo';
+
 export type ViewSliceProps = {
   mViewPosition: Mutable<Position>;
   mViewScale: Mutable<number>;

@@ -5,7 +5,6 @@ import { StyleSheet, View } from 'react-native';
 
 import { WorldCanvas, WorldCanvasRef } from '@components/WorldCanvas';
 import { TileMapStoreProvider } from '@model/useTileMapStore';
-import { state } from '@model/state';
 import { Controls } from '@components/Controls';
 
 const log = createLogger('Index');
@@ -37,11 +36,7 @@ export const Index = () => {
   return (
     <FiberProvider>
       <View style={styles.container}>
-        <TileMapStoreProvider
-          tileWidth={100}
-          tileHeight={100}
-          importState={state}
-        >
+        <TileMapStoreProvider tileWidth={100} tileHeight={100}>
           <WorldCanvas ref={worldCanvasRef} onReady={handleOnReady}>
             {/* <GuideLines /> */}
           </WorldCanvas>
